@@ -45,4 +45,5 @@
   <Project Path="Unity.VisualScripting.DocCodeExamples.csproj" />
   <Project Path="CFXR.WelcomeScreen.csproj" />
   <Project Path="Unity.2D.Triangulation.Runtime.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
 </Solution>

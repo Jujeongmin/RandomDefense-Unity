@@ -54,6 +54,7 @@ public class GManager : MonoBehaviour
     public Transform DamageTextParent => m_damageTextParent;
     public GameObject IsSettingPanel => m_settingsPanel;
     public ClassRarityDisplay IsClassRarityDisplay => m_classRarityDisplay;
+    public ResultPanel IsResultPanel => m_resultPanel;
     public GameBalanceData Balance => m_balanceData;
     public PlayerProgressManager IsProgress => m_playerProgress;
     public ResearchManager IsResearch => m_researchManager;
@@ -387,7 +388,6 @@ public class GManager : MonoBehaviour
     {
         if (m_gameOver) return;
         m_gameOver = true;
-        GrantRunCrystalReward();
         Time.timeScale = 0f;
         if (m_resultPanel != null)
         {
@@ -400,7 +400,6 @@ public class GManager : MonoBehaviour
     {
         if (m_gameOver) return;
         m_gameOver = true;
-        GrantRunCrystalReward();
         Time.timeScale = 0f;
         if (m_resultPanel != null)
         {
@@ -421,13 +420,20 @@ public class GManager : MonoBehaviour
         HandleVictory();
     }
 
-    void GrantRunCrystalReward()
+    public int GetPendingRunCrystalReward()
     {
-        if (m_runRewardGranted || m_playerProgress == null || m_balanceData == null) return;
-
         int reachedWave = m_mobManager != null ? m_mobManager.CurrentWave : 1;
-        m_playerProgress.AddCrystals(m_balanceData.GetCrystalReward(reachedWave));
+        return m_balanceData != null ? m_balanceData.GetCrystalReward(reachedWave) : 0;
+    }
+
+    public bool ClaimRunCrystalReward(int multiplier)
+    {
+        if (m_runRewardGranted || m_playerProgress == null) return false;
+
+        int reward = GetPendingRunCrystalReward() * Mathf.Max(1, multiplier);
+        m_playerProgress.AddCrystals(reward);
         m_runRewardGranted = true;
+        return true;
     }
 
     public void ClickSettingBtn()

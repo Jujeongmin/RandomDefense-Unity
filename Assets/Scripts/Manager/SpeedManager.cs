@@ -41,6 +41,7 @@ public class SpeedManager : MonoBehaviour
             m_speeds = new float[] { 1f };
         }
         m_currentSpeedIndex = Mathf.Clamp(m_currentSpeedIndex, 0, m_speeds.Length - 1);
+        if (!IsSpeedUnlocked(m_currentSpeedIndex)) m_currentSpeedIndex = 0;
 
         ApplySpeed();
 
@@ -55,15 +56,28 @@ public class SpeedManager : MonoBehaviour
 
     public void CycleSpeed()
     {
-        m_currentSpeedIndex = (m_currentSpeedIndex + 1) % m_speeds.Length;
+        int nextIndex = (m_currentSpeedIndex + 1) % m_speeds.Length;
+        if (!IsSpeedUnlocked(nextIndex)) nextIndex = 0;
+        m_currentSpeedIndex = nextIndex;
         ApplySpeed();
     }
 
     public void SetSpeedIndex(int index)
     {
         if (index < 0 || index >= m_speeds.Length) return;
+        if (!IsSpeedUnlocked(index)) return;
         m_currentSpeedIndex = index;
         ApplySpeed();
+    }
+
+    bool IsSpeedUnlocked(int index)
+    {
+        if (index < 0 || index >= m_speeds.Length) return false;
+        if (m_speeds[index] < 3f) return true;
+
+        return GManager.Instance != null
+            && GManager.Instance.IsProgress != null
+            && GManager.Instance.IsProgress.AdsRemoved;
     }
 
     void ApplySpeed()

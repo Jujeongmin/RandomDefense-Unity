@@ -18,6 +18,7 @@ public class MainMenuManager : MonoBehaviour
         if (m_quitButton != null) m_quitButton.onClick.AddListener(OnQuitButtonClicked);
 
         Time.timeScale = 1f;
+
     }
 
     private void OnStartButtonClicked()

@@ -1,7 +1,7 @@
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class ResultPanel : MonoBehaviour
 {
@@ -15,72 +15,74 @@ public class ResultPanel : MonoBehaviour
     [SerializeField] Color m_clearColor = Color.green;
     [SerializeField] Color m_gameOverColor = Color.red;
 
+    IRewardedAdService m_rewardedAdService;
+    int m_rewardAmount;
+    bool m_claimingReward;
 
-    private void Start()
+    void Start()
     {
-        if (GManager.Instance != null) GManager.Instance.RegisterResultPanel(this);
-        if (m_restartButton != null) m_restartButton.onClick.AddListener(OnRestartButtonClicked);
-        if (m_exitButton != null) m_exitButton.onClick.AddListener(OnExitButtonClicked);
+        if (GManager.Instance != null && GManager.Instance.IsResultPanel != this)
+            GManager.Instance.RegisterResultPanel(this);
+        m_rewardedAdService = new MockCommerceService();
+        if (m_restartButton != null) m_restartButton.onClick.AddListener(ClaimBasicReward);
+        if (m_exitButton != null) m_exitButton.onClick.AddListener(ClaimDoubleReward);
     }
 
     public void Setup(bool isClear, int finalWave)
     {
         gameObject.SetActive(true);
+        m_claimingReward = false;
+        m_rewardAmount = GManager.Instance != null ? GManager.Instance.GetPendingRunCrystalReward() : 0;
 
-        if (isClear)
+        SetButtonLabel(m_restartButton, $"보상받기  +{m_rewardAmount:N0}");
+        SetButtonLabel(m_exitButton, $"광고 보고 2배 받기  +{m_rewardAmount * 2:N0}");
+
+        if (m_titleText != null)
         {
-            if (m_titleText != null)
-            {
-                m_titleText.text = "GAME CLEAR";
-                m_titleText.color = m_clearColor;
-            }
-            if (m_detailsText != null)
-            {
-                m_detailsText.text = $"축하합니다!\n웨이브를 모두 클리어했습니다!";
-            }
+            m_titleText.text = isClear ? "게임 클리어" : "게임 오버";
+            m_titleText.color = isClear ? m_clearColor : m_gameOverColor;
         }
-        else
+
+        if (m_detailsText != null)
         {
-            if (m_titleText != null)
-            {
-                m_titleText.text = "GAME OVER";
-                m_titleText.color = m_gameOverColor;
-            }
-            if (m_detailsText != null)
-            {
-                m_detailsText.text = $"{finalWave} 웨이브에서 패배했습니다.";
-            }
+            string result = isClear ? "50웨이브를 클리어했습니다." : $"{finalWave}웨이브에 도달했습니다.";
+            m_detailsText.text = $"{result}\n받을 보상: 크리스탈 {m_rewardAmount:N0}개";
         }
     }
 
-    private void OnRestartButtonClicked()
+    void ClaimBasicReward()
     {
-        Time.timeScale = 1f;
-        if (GManager.Instance != null)
-        {
-            GManager.Instance.RestartGame();
-        }
-        else
-        {
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-        }
+        if (m_claimingReward) return;
+        m_claimingReward = true;
+        CompleteClaim(1);
     }
 
-    private void OnExitButtonClicked()
+    void ClaimDoubleReward()
     {
+        if (m_claimingReward) return;
+        m_claimingReward = true;
+        m_rewardedAdService.Show(success =>
+        {
+            if (success) CompleteClaim(2);
+            else
+            {
+                m_claimingReward = false;
+                if (m_detailsText != null) m_detailsText.text = "광고를 불러오지 못했습니다. 다시 시도해 주세요.";
+            }
+        });
+    }
+
+    void CompleteClaim(int multiplier)
+    {
+        if (GManager.Instance != null) GManager.Instance.ClaimRunCrystalReward(multiplier);
         Time.timeScale = 1f;
-        // GManager가 있으면 메인씨으로 복귀, 없으면 바로 종료
-        if (GManager.Instance != null)
-        {
-            SceneManager.LoadScene(GManager.SCENE_MAIN);
-        }
-        else
-        {
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-#else
-            Application.Quit();
-#endif
-        }
+        SceneManager.LoadScene(GManager.SCENE_MAIN);
+    }
+
+    static void SetButtonLabel(Button button, string label)
+    {
+        if (button == null) return;
+        TextMeshProUGUI text = button.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (text != null) text.text = label;
     }
 }

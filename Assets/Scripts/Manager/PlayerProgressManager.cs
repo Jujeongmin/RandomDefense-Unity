@@ -10,6 +10,8 @@ public class PlayerProgressData
     public int goldGainResearchLevel;
     public int rareSummonResearchLevel;
     public int bossDamageResearchLevel;
+    public bool adsRemoved;
+    public long nextRewardAdUtcTicks;
 }
 
 public class PlayerProgressManager : MonoBehaviour
@@ -19,6 +21,10 @@ public class PlayerProgressManager : MonoBehaviour
 
     public int Crystals => m_data.crystals;
     public PlayerProgressData Data => m_data;
+    public bool AdsRemoved => m_data.adsRemoved;
+    public DateTime NextRewardAdUtc => m_data.nextRewardAdUtcTicks > 0
+        ? new DateTime(m_data.nextRewardAdUtcTicks, DateTimeKind.Utc)
+        : DateTime.MinValue;
 
     public void Initialize() => Load();
 
@@ -35,6 +41,22 @@ public class PlayerProgressManager : MonoBehaviour
         m_data.crystals -= amount;
         Save();
         return true;
+    }
+
+    public void SetAdsRemoved()
+    {
+        m_data.adsRemoved = true;
+        Save();
+    }
+
+    public bool CanClaimRewardAd => DateTime.UtcNow >= NextRewardAdUtc;
+
+    public void CompleteRewardAd(int crystalReward, TimeSpan cooldown)
+    {
+        if (!CanClaimRewardAd) return;
+        m_data.crystals += Mathf.Max(0, crystalReward);
+        m_data.nextRewardAdUtcTicks = DateTime.UtcNow.Add(cooldown).Ticks;
+        Save();
     }
 
     public void Save()
