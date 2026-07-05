@@ -5,6 +5,7 @@ using UnityEngine;
 public class PlayerProgressData
 {
     public int crystals;
+    public int highestWave;
     public int attackResearchLevel;
     public int startGoldResearchLevel;
     public int goldGainResearchLevel;
@@ -20,6 +21,7 @@ public class PlayerProgressManager : MonoBehaviour
     PlayerProgressData m_data = new PlayerProgressData();
 
     public int Crystals => m_data.crystals;
+    public int HighestWave => m_data.highestWave;
     public PlayerProgressData Data => m_data;
     public bool AdsRemoved => m_data.adsRemoved;
     public DateTime NextRewardAdUtc => m_data.nextRewardAdUtcTicks > 0
@@ -41,6 +43,20 @@ public class PlayerProgressManager : MonoBehaviour
         m_data.crystals -= amount;
         Save();
         return true;
+    }
+
+    public void RecordHighestWave(int wave)
+    {
+        wave = Mathf.Max(0, wave);
+        if (wave <= m_data.highestWave) return;
+        m_data.highestWave = wave;
+        Save();
+    }
+
+    public void ResetProgress()
+    {
+        m_data = new PlayerProgressData();
+        Save();
     }
 
     public void SetAdsRemoved()

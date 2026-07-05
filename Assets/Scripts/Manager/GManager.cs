@@ -389,9 +389,10 @@ public class GManager : MonoBehaviour
         if (m_gameOver) return;
         m_gameOver = true;
         Time.timeScale = 0f;
+        int currentWave = m_mobManager != null ? m_mobManager.CurrentWave : 1;
+        if (m_playerProgress != null) m_playerProgress.RecordHighestWave(currentWave);
         if (m_resultPanel != null)
         {
-            int currentWave = m_mobManager != null ? m_mobManager.CurrentWave : 1;
             m_resultPanel.Setup(false, currentWave);
         }
     }
@@ -401,9 +402,10 @@ public class GManager : MonoBehaviour
         if (m_gameOver) return;
         m_gameOver = true;
         Time.timeScale = 0f;
+        int currentWave = m_mobManager != null ? m_mobManager.CurrentWave : 1;
+        if (m_playerProgress != null) m_playerProgress.RecordHighestWave(currentWave);
         if (m_resultPanel != null)
         {
-            int currentWave = m_mobManager != null ? m_mobManager.CurrentWave : 1;
             m_resultPanel.Setup(true, currentWave);
         }
     }

@@ -106,6 +106,96 @@ public static class MainMenuCarouselBuilder
         Debug.Log("GameScene result reward UI was configured.");
     }
 
+    [MenuItem("Tools/Random Defense/Configure Main Settings UI")]
+    public static void BuildMainSettingsUI()
+    {
+        s_koreanFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(KoreanFontPath);
+        if (s_koreanFont == null) throw new System.InvalidOperationException("Paperlogy-9Black SDF font was not found.");
+
+        Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        Canvas canvas = Object.FindAnyObjectByType<Canvas>();
+        MainMenuManager manager = Object.FindAnyObjectByType<MainMenuManager>();
+        if (canvas == null || manager == null)
+            throw new System.InvalidOperationException("MainScene Canvas or MainMenuManager was not found.");
+
+        Transform oldPanel = canvas.transform.Find("MainSettingsPanel");
+        if (oldPanel != null) Object.DestroyImmediate(oldPanel.gameObject);
+
+        RectTransform overlay = CreatePanel("MainSettingsPanel", canvas.transform, new Color(0f, 0f, 0f, 0.72f));
+        Stretch(overlay);
+        RectTransform card = CreatePanel("SettingsCard", overlay, new Color(0.07f, 0.1f, 0.16f, 1f));
+        card.anchorMin = card.anchorMax = new Vector2(0.5f, 0.5f);
+        card.sizeDelta = new Vector2(500f, 610f);
+
+        TextMeshProUGUI title = CreateText("SettingsTitle", card, "설정", 40f, TextAlignmentOptions.Center);
+        Position(title.rectTransform, new Vector2(0f, 245f), new Vector2(420f, 70f));
+
+        Button sound = CreateSettingsButton("SoundButton", card, "사운드  켜짐", new Vector2(0f, 155f), new Vector2(380f, 72f));
+        TextMeshProUGUI soundText = sound.GetComponentInChildren<TextMeshProUGUI>(true);
+
+        TextMeshProUGUI languageLabel = CreateText("LanguageLabel", card, "LANGUAGE", 22f, TextAlignmentOptions.Center);
+        Position(languageLabel.rectTransform, new Vector2(0f, 85f), new Vector2(380f, 40f));
+        Button korean = CreateSettingsButton("KoreanButton", card, "한국어", new Vector2(-100f, 30f), new Vector2(180f, 64f));
+        Button english = CreateSettingsButton("EnglishButton", card, "English", new Vector2(100f, 30f), new Vector2(180f, 64f));
+
+        Button reset = CreateSettingsButton("ResetDataButton", card, "데이터 초기화", new Vector2(0f, -80f), new Vector2(380f, 72f));
+        reset.targetGraphic.color = new Color(0.55f, 0.16f, 0.18f, 1f);
+        TextMeshProUGUI resetText = reset.GetComponentInChildren<TextMeshProUGUI>(true);
+        Button close = CreateSettingsButton("CloseButton", card, "닫기", new Vector2(0f, -185f), new Vector2(380f, 72f));
+        TextMeshProUGUI closeText = close.GetComponentInChildren<TextMeshProUGUI>(true);
+
+        Button setting = FindNamedComponent<Button>("Setting");
+        TextMeshProUGUI highWave = FindNamedComponent<TextMeshProUGUI>("HighWave");
+        SerializedObject serializedManager = new SerializedObject(manager);
+        serializedManager.FindProperty("m_settingButton").objectReferenceValue = setting;
+        serializedManager.FindProperty("m_highWaveText").objectReferenceValue = highWave;
+        serializedManager.FindProperty("m_settingPanel").objectReferenceValue = overlay.gameObject;
+        serializedManager.FindProperty("m_settingsTitleText").objectReferenceValue = title;
+        serializedManager.FindProperty("m_soundButton").objectReferenceValue = sound;
+        serializedManager.FindProperty("m_soundButtonText").objectReferenceValue = soundText;
+        serializedManager.FindProperty("m_koreanButton").objectReferenceValue = korean;
+        serializedManager.FindProperty("m_englishButton").objectReferenceValue = english;
+        serializedManager.FindProperty("m_resetButton").objectReferenceValue = reset;
+        serializedManager.FindProperty("m_resetButtonText").objectReferenceValue = resetText;
+        serializedManager.FindProperty("m_closeButton").objectReferenceValue = close;
+        serializedManager.FindProperty("m_closeButtonText").objectReferenceValue = closeText;
+        serializedManager.ApplyModifiedPropertiesWithoutUndo();
+
+        overlay.gameObject.SetActive(false);
+        EditorUtility.SetDirty(manager);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("MainScene settings UI was created and assigned as scene objects.");
+    }
+
+    static Button CreateSettingsButton(string name, Transform parent, string label, Vector2 position, Vector2 size)
+    {
+        Button button = CreateButton(name, parent, label);
+        RectTransform rect = button.GetComponent<RectTransform>();
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+        LayoutElement layout = button.GetComponent<LayoutElement>();
+        if (layout != null) Object.DestroyImmediate(layout);
+        return button;
+    }
+
+    static void Position(RectTransform rect, Vector2 position, Vector2 size)
+    {
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+    }
+
+    static T FindNamedComponent<T>(string objectName) where T : Component
+    {
+        T[] components = Object.FindObjectsByType<T>(FindObjectsInactive.Include);
+        foreach (T component in components)
+            if (component.name == objectName) return component;
+        return null;
+    }
+
     static void ConfigureRewardButton(Button button, string objectName, string label, float x)
     {
         if (button == null) return;
@@ -193,7 +283,7 @@ public static class MainMenuCarouselBuilder
         bar.pivot = new Vector2(0.5f, 1f);
         bar.anchoredPosition = new Vector2(0f, -20f);
         bar.sizeDelta = new Vector2(260f, 64f);
-        TextMeshProUGUI text = CreateText("CrystalText", bar, "크리스탈  0", 28, TextAlignmentOptions.Center);
+        TextMeshProUGUI text = CreateText("CrystalText", bar, "0", 28, TextAlignmentOptions.Center);
         Stretch(text.rectTransform);
         return text;
     }

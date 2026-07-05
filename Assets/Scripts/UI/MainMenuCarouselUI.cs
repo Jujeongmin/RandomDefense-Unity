@@ -192,7 +192,7 @@ public class MainMenuCarouselUI : MonoBehaviour, IBeginDragHandler, IDragHandler
         if (m_crystalText != null && m_lastCrystalCount != progress.Crystals)
         {
             m_lastCrystalCount = progress.Crystals;
-            m_crystalText.text = $"크리스탈  {progress.Crystals:N0}";
+            m_crystalText.text = $"{progress.Crystals:N0}";
         }
 
         ResearchManager research = GManager.Instance.IsResearch;
