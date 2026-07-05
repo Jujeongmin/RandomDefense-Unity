@@ -49,19 +49,17 @@ public class UnitSpawner : MonoBehaviour
         };
 
         // 등급 (비율: 50 일반, 33 고급, 10 정예, 6.5 전설, 0.4 신화, 0.1 태초)
-        float rar = Random.Range(0f, 100f);
-        RarityType.TYPE rarity = RarityType.TYPE.Common;
-        if (rar < 50f) rarity = RarityType.TYPE.Common; 
-        else if (rar < 83f) rarity = RarityType.TYPE.Rare;
-        else if (rar < 93f) rarity = RarityType.TYPE.Elite;
-        else if (rar < 99.5f) rarity = RarityType.TYPE.Legendary;
-        else if (rar < 99.9f) rarity = RarityType.TYPE.Mythic;
-        else rarity = RarityType.TYPE.Eternal;
+        int rareResearchLevel = GManager.Instance.IsResearch != null
+            ? GManager.Instance.IsResearch.GetLevel(ResearchType.RareSummon)
+            : 0;
+        RarityType.TYPE rarity = GManager.Instance.Balance != null
+            ? GManager.Instance.Balance.RollRarity(rareResearchLevel)
+            : RarityType.TYPE.Common;
 
         // 비용 지불
         econ.SpendGold(econ.SummonCost);
 
-        ExecuteSpawn(spawnType, rarity, rar);
+        ExecuteSpawn(spawnType, rarity, 0f);
     }
 
     public void ForceSpawnWithRarity(RarityType.TYPE forcedRarity)

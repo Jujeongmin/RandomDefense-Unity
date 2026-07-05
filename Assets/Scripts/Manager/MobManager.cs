@@ -9,7 +9,7 @@ public class MobManager : MonoBehaviour
 {
     [Header("Wave Settings")]
     [SerializeField] int m_currentWave = 1;
-    [SerializeField] int m_maxWave = 40;
+    [SerializeField] int m_maxWave = 50;
     [SerializeField] int m_mobsPerWave = 40;
     [SerializeField] float m_mobSpawnInterval = 1.0f;
     [SerializeField] float m_waveInterval = 5.0f;
@@ -186,6 +186,13 @@ public class MobManager : MonoBehaviour
 
     IEnumerator WaveLoop()
     {
+        GameBalanceData balance = GManager.Instance != null ? GManager.Instance.Balance : null;
+        int maxWave = balance != null ? balance.MaxWave : m_maxWave;
+        int mobsPerWave = balance != null ? balance.MobsPerWave : m_mobsPerWave;
+        float spawnInterval = balance != null ? balance.MobSpawnInterval : m_mobSpawnInterval;
+        float waveInterval = balance != null ? balance.WaveInterval : m_waveInterval;
+        float bossTimeLimit = balance != null ? balance.BossTimeLimit : m_bossTimeLimit;
+
         while (!m_gameOver)
         {
 
@@ -211,7 +218,7 @@ public class MobManager : MonoBehaviour
 
                 SpawnBoss();
 
-                float timer = m_bossTimeLimit;
+                float timer = bossTimeLimit;
                 while (timer > 0 && m_activeBoss != null)
                 {
                     timer -= Time.deltaTime;
@@ -238,7 +245,7 @@ public class MobManager : MonoBehaviour
 
                 Debug.Log($"Boss Wave {m_currentWave} cleared! Waiting for next wave...");
 
-                if (m_currentWave >= m_maxWave)
+                if (m_currentWave >= maxWave)
                 {
                     Debug.Log("Final wave boss defeated! Game Clear.");
                     if (GManager.Instance != null)
@@ -267,15 +274,15 @@ public class MobManager : MonoBehaviour
 
                 UpdateWaveInfoUI(chosenIndex);
 
-                while (m_spawnedInWave < m_mobsPerWave)
+                while (m_spawnedInWave < mobsPerWave)
                 {
                     SpawnMob(chosenIndex);
                     m_spawnedInWave++;
-                    yield return new WaitForSeconds(m_mobSpawnInterval);
+                    yield return new WaitForSeconds(spawnInterval);
                 }
             }
 
-            yield return new WaitForSeconds(m_waveInterval);
+            yield return new WaitForSeconds(waveInterval);
             m_currentWave++;
         }
     }
@@ -352,15 +359,18 @@ public class MobManager : MonoBehaviour
         }
     }
 
-    public void OnMobDestroyed(bool giveReward)
+    public void OnMobDestroyed(bool giveReward, bool isBoss = false)
     {
         m_spawnCount = Mathf.Max(0, m_spawnCount - 1);
         UpdateMobCountText();
 
         if (giveReward && GManager.Instance != null && GManager.Instance.IsEconomy != null)
         {
-            // Reward: 1 Gold per mob kill
-            GManager.Instance.IsEconomy.AddGold(1);
+            var balance = GManager.Instance.Balance;
+            int reward = balance != null
+                ? (isBoss ? balance.BossKillGold : balance.NormalKillGold)
+                : (isBoss ? 100 : 2);
+            GManager.Instance.IsEconomy.AddKillGold(reward);
         }
     }
 

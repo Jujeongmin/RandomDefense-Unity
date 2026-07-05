@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e6c62c3f1db4c3488e54a3ca44a62c0, type: 3}
+  m_Name: GameBalanceData
+  m_EditorClassIdentifier: Assembly-CSharp::GameBalanceData
+  m_startGold: 100
+  m_summonCost: 20
+  m_normalKillGold: 2
+  m_bossKillGold: 100
+  m_upgradeBaseCost: 20
+  m_upgradeCostStep: 20
+  m_crystalPerReachedWave: 2
+  m_researchBaseCost: 50
+  m_rareSummonBonusPerLevel: 0.1
+  m_attackInterval: 1
+  m_maxWave: 50
+  m_mobsPerWave: 40
+  m_mobSpawnInterval: 1
+  m_waveInterval: 5
+  m_bossTimeLimit: 120

@@ -5,7 +5,7 @@ public class EconomyManager : MonoBehaviour
 {
     [Header("Gold Settings")]
     [SerializeField] int m_startGold = 100;
-    [SerializeField] int m_summonCost = 10;
+    [SerializeField] int m_summonCost = 20;
 
     [Header("UI")]
     [SerializeField] TextMeshProUGUI m_goldText;
@@ -13,7 +13,9 @@ public class EconomyManager : MonoBehaviour
     int m_gold = 0;
 
     public int Gold => m_gold;
-    public int SummonCost => m_summonCost;
+    public int SummonCost => GManager.Instance != null && GManager.Instance.Balance != null
+        ? GManager.Instance.Balance.SummonCost
+        : m_summonCost;
 
     private void Start()
     {
@@ -24,7 +26,13 @@ public class EconomyManager : MonoBehaviour
 
     public void Initialize()
     {
-        m_gold = m_startGold;
+        int baseGold = GManager.Instance != null && GManager.Instance.Balance != null
+            ? GManager.Instance.Balance.StartGold
+            : m_startGold;
+        int researchBonus = GManager.Instance != null && GManager.Instance.IsResearch != null
+            ? GManager.Instance.IsResearch.StartGoldBonus
+            : 0;
+        m_gold = baseGold + researchBonus;
         UpdateGoldUI();
     }
 
@@ -32,6 +40,14 @@ public class EconomyManager : MonoBehaviour
     {
         m_gold += amount;
         UpdateGoldUI();
+    }
+
+    public void AddKillGold(int baseAmount)
+    {
+        float multiplier = GManager.Instance != null && GManager.Instance.IsResearch != null
+            ? GManager.Instance.IsResearch.GoldGainMultiplier
+            : 1f;
+        AddGold(Mathf.RoundToInt(baseAmount * multiplier));
     }
 
     public bool CanAfford(int cost)

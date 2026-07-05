@@ -6,6 +6,9 @@ using UnityEngine.UI;
 
 public class GManager : MonoBehaviour
 {
+    [Header("Game Balance")]
+    [SerializeField] GameBalanceData m_balanceData = null;
+
     [Header("Managers")]
     [SerializeField] UnitDataManager m_unitDataManager = null;
     [SerializeField] PoolManager m_poolManager = null;
@@ -17,6 +20,8 @@ public class GManager : MonoBehaviour
     SpeedManager m_speedManager = null;
     SpawnTextManager m_spawnTextManager = null;
     ClassRarityDisplay m_classRarityDisplay = null;
+    PlayerProgressManager m_playerProgress = null;
+    ResearchManager m_researchManager = null;
 
     ResultPanel m_resultPanel = null;
     GameObject m_settingsPanel = null;
@@ -29,6 +34,7 @@ public class GManager : MonoBehaviour
 
 
     bool m_gameOver = false;
+    bool m_runRewardGranted = false;
 
     [Header("Debug (Inspector)")]
     [SerializeField] bool m_testGameOver = false;
@@ -48,6 +54,9 @@ public class GManager : MonoBehaviour
     public Transform DamageTextParent => m_damageTextParent;
     public GameObject IsSettingPanel => m_settingsPanel;
     public ClassRarityDisplay IsClassRarityDisplay => m_classRarityDisplay;
+    public GameBalanceData Balance => m_balanceData;
+    public PlayerProgressManager IsProgress => m_playerProgress;
+    public ResearchManager IsResearch => m_researchManager;
 
     // ── 런타임 등록 메서드 (각 게임씬 매니저가 Start에서 자기 자신을 등록) ──
     public void RegisterMobManager(MobManager mgr)
@@ -115,6 +124,7 @@ public class GManager : MonoBehaviour
     {
         Time.timeScale = 1f;
         m_gameOver = false;
+        m_runRewardGranted = false;
         // Ensure restart sequence runs but always hide the result panel even if an error occurs.
         try
         {
@@ -168,6 +178,19 @@ public class GManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+
+            if (m_balanceData == null)
+            {
+                m_balanceData = ScriptableObject.CreateInstance<GameBalanceData>();
+            }
+
+            m_playerProgress = GetComponent<PlayerProgressManager>();
+            if (m_playerProgress == null) m_playerProgress = gameObject.AddComponent<PlayerProgressManager>();
+            m_playerProgress.Initialize();
+
+            m_researchManager = GetComponent<ResearchManager>();
+            if (m_researchManager == null) m_researchManager = gameObject.AddComponent<ResearchManager>();
+            m_researchManager.Initialize(m_playerProgress, m_balanceData);
         }
         else
         {
@@ -209,6 +232,7 @@ public class GManager : MonoBehaviour
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         m_gameOver = false;
+        m_runRewardGranted = false;
         Time.timeScale = 1f;
 
         if (scene.name == SCENE_MAIN)
@@ -363,6 +387,7 @@ public class GManager : MonoBehaviour
     {
         if (m_gameOver) return;
         m_gameOver = true;
+        GrantRunCrystalReward();
         Time.timeScale = 0f;
         if (m_resultPanel != null)
         {
@@ -375,6 +400,7 @@ public class GManager : MonoBehaviour
     {
         if (m_gameOver) return;
         m_gameOver = true;
+        GrantRunCrystalReward();
         Time.timeScale = 0f;
         if (m_resultPanel != null)
         {
@@ -393,6 +419,15 @@ public class GManager : MonoBehaviour
     {
         m_gameOver = false;
         HandleVictory();
+    }
+
+    void GrantRunCrystalReward()
+    {
+        if (m_runRewardGranted || m_playerProgress == null || m_balanceData == null) return;
+
+        int reachedWave = m_mobManager != null ? m_mobManager.CurrentWave : 1;
+        m_playerProgress.AddCrystals(m_balanceData.GetCrystalReward(reachedWave));
+        m_runRewardGranted = true;
     }
 
     public void ClickSettingBtn()
@@ -540,15 +575,6 @@ public class GManager : MonoBehaviour
 
     int GetSellPrice(RarityType.TYPE rarity)
     {
-        return rarity switch
-        {
-            RarityType.TYPE.Common => 10,
-            RarityType.TYPE.Rare => 25,
-            RarityType.TYPE.Elite => 60,
-            RarityType.TYPE.Legendary => 150,
-            RarityType.TYPE.Mythic => 400,
-            RarityType.TYPE.Eternal => 1000,
-            _ => 0
-        };
+        return m_balanceData != null ? m_balanceData.GetSellPrice(rarity) : 0;
     }
 }

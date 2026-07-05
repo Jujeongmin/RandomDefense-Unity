@@ -6529,7 +6529,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MobManager
   m_currentWave: 1
-  m_maxWave: 40
+  m_maxWave: 50
   m_mobsPerWave: 40
   m_mobSpawnInterval: 1
   m_waveInterval: 5

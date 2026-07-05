@@ -14,8 +14,8 @@ public class UpgradeManager : MonoBehaviour
     [SerializeField] TextMeshProUGUI m_warriorLvText;
 
     [Header("Upgrade Costs")]
-    [SerializeField] int m_upgradeBaseCost = 50;
-    [SerializeField] int m_upgradeCostStep = 30;
+    [SerializeField] int m_upgradeBaseCost = 20;
+    [SerializeField] int m_upgradeCostStep = 20;
 
     private void Start()
     {
@@ -42,7 +42,10 @@ public class UpgradeManager : MonoBehaviour
     public int GetUpgradeCost(EntityType.TYPE type)
     {
         int level = GetClassLevel(type);
-        return m_upgradeBaseCost + (level - 1) * m_upgradeCostStep;
+        var balance = GManager.Instance != null ? GManager.Instance.Balance : null;
+        int baseCost = balance != null ? balance.UpgradeBaseCost : m_upgradeBaseCost;
+        int costStep = balance != null ? balance.UpgradeCostStep : m_upgradeCostStep;
+        return baseCost + (level - 1) * costStep;
     }
 
     public void UpgradeWizard() => TryUpgrade(ref m_wizardLevel, EntityType.TYPE.Wizard);

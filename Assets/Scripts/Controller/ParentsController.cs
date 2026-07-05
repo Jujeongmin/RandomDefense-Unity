@@ -72,6 +72,7 @@ public class ParentsController : MonoBehaviour
         m_lastCategory = string.Empty;
         m_lastLabel = string.Empty;
         m_aniTimer = 0f;
+        m_attackTimer = 0f;
         
         if (m_atkEffectObj != null)
         {
@@ -100,8 +101,28 @@ public class ParentsController : MonoBehaviour
     public virtual void Tick()
     {
         UpdateAttackTarget();
+        UpdateAttackCooldown();
         UpdateAnimationIndex();
         UpdateAnimationResolver();
+    }
+
+    void UpdateAttackCooldown()
+    {
+        if (IsMoveType != MoveType.TYPE.Attack || m_targetMob == null)
+        {
+            m_attackTimer = 0f;
+            return;
+        }
+
+        m_attackTimer += Time.deltaTime;
+        float attackInterval = GManager.Instance != null && GManager.Instance.Balance != null
+            ? GManager.Instance.Balance.AttackInterval
+            : 1f;
+        if (m_attackTimer < attackInterval) return;
+
+        // Keep a stable one-attack-per-second cadence even when the game is sped up.
+        m_attackTimer -= attackInterval;
+        ExecuteAttack();
     }
 
     void UpdateAnimationIndex()
@@ -112,17 +133,11 @@ public class ParentsController : MonoBehaviour
             m_aniTimer += Time.deltaTime * speed;
             if (m_aniTimer >= 0.1f)
             {
-                int oldIndex = IsAniIndex;
-
                 int maxFrames = (IsMoveType == MoveType.TYPE.Walk) ? 4 : 2;
                 IsAniIndex = (IsAniIndex + 1) % maxFrames;
 
                 m_aniTimer -= 0.1f;
 
-                if (IsMoveType == MoveType.TYPE.Attack && IsAniIndex == 1 && oldIndex == 0)
-                {
-                    ExecuteAttack();
-                }
             }
         }
         else
@@ -143,7 +158,10 @@ public class ParentsController : MonoBehaviour
         if (mobMgr == null) return;
 
         MobController closestMob = null;
-        float searchRange = IsData.IsSearchLength;
+        // Legendary and higher rarity units can target the entire battlefield.
+        float searchRange = IsRarity >= RarityType.TYPE.Legendary
+            ? float.PositiveInfinity
+            : IsData.IsSearchLength;
         float minSqrDistance = searchRange * searchRange;
 
         foreach (var mob in mobMgr.ActiveMobs)
@@ -179,8 +197,15 @@ public class ParentsController : MonoBehaviour
         int baseDamage = IsData != null ? IsData.IsDamage : 10;
         int level = (GManager.Instance != null && GManager.Instance.IsUpgrade != null) ? GManager.Instance.IsUpgrade.GetClassLevel(IsData.IsEntityType) : 0;
         
+        bool targetIsBoss = m_targetMob.IsData != null && m_targetMob.IsData.IsEntityType == EntityType.TYPE.Boss;
         float multiplier = GetDamageMultiplier(IsData.IsEntityType, m_targetMob.IsData.IsSpeciesType);
-        int finalDamage = Mathf.RoundToInt(baseDamage * (1f + (level - 1) * 0.1f) * multiplier);
+        float researchMultiplier = GManager.Instance != null && GManager.Instance.IsResearch != null
+            ? GManager.Instance.IsResearch.AttackMultiplier
+            : 1f;
+        float bossMultiplier = targetIsBoss && GManager.Instance != null && GManager.Instance.IsResearch != null
+            ? GManager.Instance.IsResearch.BossDamageMultiplier
+            : 1f;
+        int finalDamage = Mathf.RoundToInt(baseDamage * (1f + (level - 1) * 0.1f) * multiplier * researchMultiplier * bossMultiplier);
 
         m_targetMob.TakeDamage(finalDamage);
 
@@ -200,6 +225,11 @@ public class ParentsController : MonoBehaviour
 
     float GetDamageMultiplier(EntityType.TYPE attacker, SpeciesType.TYPE target)
     {
+        if (GManager.Instance != null && GManager.Instance.Balance != null)
+        {
+            return GManager.Instance.Balance.GetDamageMultiplier(attacker, target);
+        }
+
         if (target == SpeciesType.TYPE.None) return 1.0f;
 
         switch (attacker)
@@ -243,7 +273,8 @@ public class ParentsController : MonoBehaviour
         {
             if (GManager.Instance != null && GManager.Instance.IsMob != null)
             {
-                GManager.Instance.IsMob.OnMobDestroyed(true);
+                bool isBoss = IsData.IsEntityType == EntityType.TYPE.Boss;
+                GManager.Instance.IsMob.OnMobDestroyed(true, isBoss);
             }
         }
 
@@ -352,6 +383,7 @@ public class ParentsController : MonoBehaviour
     string m_lastCategory = string.Empty;
     string m_lastLabel = string.Empty;
     float m_aniTimer = 0f;
+    float m_attackTimer = 0f;
     GameObject m_atkEffectObj = null;
 
     /// <summary>
