@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1d6607ed09bb2d4eaba8eb8b7a393dd, type: 3}
+  m_Name: Mob_Undead_0
+  m_EditorClassIdentifier: Assembly-CSharp::EntityData
+  m_entityType: 3
+  m_entityIndex: 0
+  m_spLibAsset: {fileID: 7108339969198208228, guid: 7c27eafff6fa60f45b547c3675155a8d,
+    type: 3}
+  m_aniScale: 0.2
+  m_speed: 4
+  m_searchLength: 1
+  m_atk: {x: 10, y: 15}
+  m_hp: 100
+  m_speciesType: 1
+  m_effect: {fileID: 8813961455893045608, guid: 60997dcbc3f3a0249bca2f3b6bf694d2,
+    type: 3}
+  m_icon: {fileID: 1182338012913468352, guid: bbe2e9d169f6f1e4888a83ddab3f6358, type: 3}
