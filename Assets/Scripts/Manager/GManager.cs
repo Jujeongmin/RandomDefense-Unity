@@ -2,7 +2,6 @@ using TMPro;
 using UnityEngine.SceneManagement;
 using System.Collections;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class GManager : MonoBehaviour
 {
@@ -63,6 +62,7 @@ public class GManager : MonoBehaviour
     public void RegisterMobManager(MobManager mgr)
     {
         m_mobManager = mgr;
+        if (m_upgradeManager != null) m_upgradeManager.BindMobManager(mgr);
     }
 
     /// <summary>하위호환성 유지용 — RegisterMobManager 사용 권장</summary>
@@ -79,7 +79,11 @@ public class GManager : MonoBehaviour
     public void RegisterUpgradeManager(UpgradeManager mgr)
     {
         m_upgradeManager = mgr;
-        if (mgr != null) mgr.Initialize();
+        if (mgr != null)
+        {
+            mgr.BindMobManager(m_mobManager);
+            mgr.Initialize();
+        }
     }
 
     public void RegisterSpeedManager(SpeedManager mgr)
@@ -244,98 +248,9 @@ public class GManager : MonoBehaviour
         else if (scene.name == SCENE_GAME)
         {
             // 게임씬: 풀 초기화 후 매니저들은 각자 Start에서 등록됨
-            RegisterSceneReferences(scene);
             StartCoroutine(DelayedInitializeManagers());
             if (m_resultPanel != null) m_resultPanel.gameObject.SetActive(false);
         }
-    }
-
-    void RegisterSceneReferences(Scene scene)
-    {
-        if (m_resultPanel == null)
-        {
-            var resultPanel = FindInScene<ResultPanel>(scene);
-            if (resultPanel != null) RegisterResultPanel(resultPanel);
-        }
-
-        if (m_settingsPanel == null)
-        {
-            var settingPanel = FindInScene<SettingPanel>(scene);
-            if (settingPanel != null) RegisterSettingsPanel(settingPanel.gameObject);
-        }
-
-        if (m_damageTextParent == null)
-        {
-            var damageTextParent = FindTransformInScene(scene, "DamageTexts");
-            if (damageTextParent != null) RegisterDamageTextParent(damageTextParent);
-        }
-
-        if (m_selectedClassNameText == null)
-        {
-            var classText = FindComponentByName<TextMeshProUGUI>(scene, "ClassText");
-            if (classText != null) RegisterSelectedClassNameText(classText);
-        }
-
-        BindButton(scene, "Setting", ClickSettingBtn);
-        BindButton(scene, "WizardSellBtn", () => SetClassToSell((int)EntityType.TYPE.Wizard));
-        BindButton(scene, "ArcherSellBtn", () => SetClassToSell((int)EntityType.TYPE.Archer));
-        BindButton(scene, "WarriorSellBtn", () => SetClassToSell((int)EntityType.TYPE.Warrior));
-        BindButton(scene, "CommonSellBtn", () => SellCurrentClassByRarity((int)RarityType.TYPE.Common));
-        BindButton(scene, "RareSellBtn", () => SellCurrentClassByRarity((int)RarityType.TYPE.Rare));
-        BindButton(scene, "EliteSellBtn", () => SellCurrentClassByRarity((int)RarityType.TYPE.Elite));
-        BindButton(scene, "LegendarySellBtn", () => SellCurrentClassByRarity((int)RarityType.TYPE.Legendary));
-        BindButton(scene, "MythicSellBtn", () => SellCurrentClassByRarity((int)RarityType.TYPE.Mythic));
-        BindButton(scene, "EternalSellBtn", () => SellCurrentClassByRarity((int)RarityType.TYPE.Eternal));
-    }
-
-    T FindInScene<T>(Scene scene) where T : Component
-    {
-        foreach (GameObject root in scene.GetRootGameObjects())
-        {
-            T component = root.GetComponentInChildren<T>(true);
-            if (component != null) return component;
-        }
-
-        return null;
-    }
-
-    Transform FindTransformInScene(Scene scene, string objectName)
-    {
-        foreach (GameObject root in scene.GetRootGameObjects())
-        {
-            Transform result = FindTransformRecursive(root.transform, objectName);
-            if (result != null) return result;
-        }
-
-        return null;
-    }
-
-    Transform FindTransformRecursive(Transform current, string objectName)
-    {
-        if (current.name == objectName) return current;
-
-        foreach (Transform child in current)
-        {
-            Transform result = FindTransformRecursive(child, objectName);
-            if (result != null) return result;
-        }
-
-        return null;
-    }
-
-    T FindComponentByName<T>(Scene scene, string objectName) where T : Component
-    {
-        Transform transform = FindTransformInScene(scene, objectName);
-        return transform != null ? transform.GetComponent<T>() : null;
-    }
-
-    void BindButton(Scene scene, string buttonName, UnityEngine.Events.UnityAction action)
-    {
-        Button button = FindComponentByName<Button>(scene, buttonName);
-        if (button == null) return;
-
-        button.onClick.RemoveListener(action);
-        button.onClick.AddListener(action);
     }
 
     void OnMainSceneLoaded()
@@ -529,20 +444,42 @@ public class GManager : MonoBehaviour
         EntityType.TYPE type = (EntityType.TYPE)m_selectedClassToSell;
         RarityType.TYPE rarity = (RarityType.TYPE)rarityType;
 
-        var region = IsRegion.GetRegionForType(type);
-        if (region == null) return;
+        SellUnits(type, rarity, 1);
+    }
 
-        GameObject unitGo = region.FindAndRemoveUnitByRarity(rarity);
-        if (unitGo != null)
+    public int GetUnitCount(EntityType.TYPE type, RarityType.TYPE rarity)
+    {
+        return m_regionManager != null ? m_regionManager.GetCountByClassAndRarity(type, rarity) : 0;
+    }
+
+    public int GetUnitSellPrice(RarityType.TYPE rarity) => GetSellPrice(rarity);
+
+    public int SellUnits(EntityType.TYPE type, RarityType.TYPE rarity, int requestedAmount)
+    {
+        if (m_regionManager == null || m_economyManager == null) return 0;
+
+        int owned = GetUnitCount(type, rarity);
+        int targetAmount = requestedAmount <= 0 ? owned : Mathf.Min(requestedAmount, owned);
+        int sold = 0;
+
+        foreach (Region region in m_regionManager.GetRegions())
         {
-            int price = GetSellPrice(rarity);
-            IsEconomy.AddGold(price);
+            if (region == null || region.OccupiedType != type) continue;
+            while (sold < targetAmount)
+            {
+                GameObject unitGo = region.FindAndRemoveUnitByRarity(rarity);
+                if (unitGo == null) break;
 
-            if (IsPool != null) IsPool.ReturnUnit(unitGo);
-            else Destroy(unitGo);
-
-            m_classRarityDisplay.UpdateRarityImages(type);
+                if (m_poolManager != null) m_poolManager.ReturnUnit(unitGo);
+                else Destroy(unitGo);
+                sold++;
+            }
+            if (sold >= targetAmount) break;
         }
+
+        if (sold > 0) m_economyManager.AddGold(GetSellPrice(rarity) * sold);
+        if (m_classRarityDisplay != null) m_classRarityDisplay.UpdateRarityImages(type);
+        return sold;
     }
 
     public Sprite GetSprite(EntityType.TYPE classType, RarityType.TYPE rarity)

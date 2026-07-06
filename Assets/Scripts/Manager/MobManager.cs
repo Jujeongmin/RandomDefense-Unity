@@ -7,6 +7,15 @@ using TMPro;
 
 public class MobManager : MonoBehaviour
 {
+    static readonly SpeciesType.TYPE[] SpeciesPool =
+    {
+        SpeciesType.TYPE.Orc,
+        SpeciesType.TYPE.Troll,
+        SpeciesType.TYPE.Undead
+    };
+
+    public SpeciesType.TYPE CurrentSpecies { get; private set; } = SpeciesType.TYPE.None;
+    public event System.Action<SpeciesType.TYPE> SpeciesChanged;
     [Header("Wave Settings")]
     [SerializeField] int m_currentWave = 1;
     [SerializeField] int m_maxWave = 50;
@@ -153,6 +162,7 @@ public class MobManager : MonoBehaviour
         var data = unitDataMgr.Get(EntityType.TYPE.Mob, mobIndex);
         if (data != null)
         {
+            SetCurrentSpecies(data.IsSpeciesType);
             if (m_waveSpeciesText != null) 
             { 
                 switch(data.IsSpeciesType)
@@ -179,6 +189,7 @@ public class MobManager : MonoBehaviour
         }
         else
         {
+            SetCurrentSpecies(SpeciesType.TYPE.None);
             if (m_waveSpeciesText != null) m_waveSpeciesText.text = string.Empty;
             if (m_waveMobImage != null) m_waveMobImage.gameObject.SetActive(false);
         }
@@ -258,8 +269,7 @@ public class MobManager : MonoBehaviour
             }
             else
             {
-                SpeciesType.TYPE[] speciesPool = new SpeciesType.TYPE[] { SpeciesType.TYPE.Orc, SpeciesType.TYPE.Troll, SpeciesType.TYPE.Undead };
-                SpeciesType.TYPE chosenSpecies = speciesPool[Random.Range(0, speciesPool.Length)];
+                SpeciesType.TYPE chosenSpecies = SpeciesPool[Random.Range(0, SpeciesPool.Length)];
 
                 var unitDataMgr = GManager.Instance != null ? GManager.Instance.IsUnitData : null;
                 int chosenIndex = 0;
@@ -428,6 +438,7 @@ public class MobManager : MonoBehaviour
 
         if (data != null)
         {
+            SetCurrentSpecies(data.IsSpeciesType);
             mobCtrl.Setting(usingFallback ? EntityType.TYPE.Mob : EntityType.TYPE.Boss, data.IsEntityIndex);
 
             int baseHp = data.IsHp;
@@ -439,6 +450,13 @@ public class MobManager : MonoBehaviour
 
         m_activeBoss = mobCtrl;
         UpdateMobCountText();
+    }
+
+    void SetCurrentSpecies(SpeciesType.TYPE species)
+    {
+        if (CurrentSpecies == species) return;
+        CurrentSpecies = species;
+        SpeciesChanged?.Invoke(species);
     }
 
     // Called by other systems when the active boss has been defeated (clears reference)

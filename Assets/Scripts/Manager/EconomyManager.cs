@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using System;
 
 public class EconomyManager : MonoBehaviour
 {
@@ -13,6 +14,7 @@ public class EconomyManager : MonoBehaviour
     int m_gold = 0;
 
     public int Gold => m_gold;
+    public event Action<int> GoldChanged;
     public int SummonCost => GManager.Instance != null && GManager.Instance.Balance != null
         ? GManager.Instance.Balance.SummonCost
         : m_summonCost;
@@ -38,8 +40,8 @@ public class EconomyManager : MonoBehaviour
 
     public void AddGold(int amount)
     {
-        m_gold += amount;
-        UpdateGoldUI();
+        if (amount <= 0) return;
+        SetGold(m_gold + amount);
     }
 
     public void AddKillGold(int baseAmount)
@@ -52,13 +54,19 @@ public class EconomyManager : MonoBehaviour
 
     public bool CanAfford(int cost)
     {
-        return m_gold >= cost;
+        return cost >= 0 && m_gold >= cost;
+    }
+
+    public bool TrySpend(int amount)
+    {
+        if (!CanAfford(amount)) return false;
+        SetGold(m_gold - amount);
+        return true;
     }
 
     public void SpendGold(int amount)
     {
-        m_gold -= amount;
-        UpdateGoldUI();
+        TrySpend(amount);
     }
 
     public void UpdateGoldUI()
@@ -67,5 +75,14 @@ public class EconomyManager : MonoBehaviour
         {
             m_goldText.text = $"{m_gold}";
         }
+    }
+
+    void SetGold(int value)
+    {
+        int nextGold = Mathf.Max(0, value);
+        if (m_gold == nextGold) return;
+        m_gold = nextGold;
+        UpdateGoldUI();
+        GoldChanged?.Invoke(m_gold);
     }
 }

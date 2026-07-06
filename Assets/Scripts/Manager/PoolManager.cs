@@ -52,9 +52,6 @@ public class PoolManager : MonoBehaviour
     {
         if (current != null) return current;
 
-        var existing = transform.Find(name);
-        if (existing != null) return existing.gameObject;
-
         var go = new GameObject(name);
         go.transform.SetParent(transform);
         return go;

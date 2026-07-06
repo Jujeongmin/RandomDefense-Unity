@@ -7,7 +7,6 @@ public class MainMenuManager : MonoBehaviour
 {
     [Header("Main UI")]
     [SerializeField] Button m_startButton;
-    [SerializeField] Button m_quitButton;
     [SerializeField] Button m_settingButton;
     [SerializeField] TextMeshProUGUI m_highWaveText;
 
@@ -32,7 +31,6 @@ public class MainMenuManager : MonoBehaviour
     void Start()
     {
         m_startButton?.onClick.AddListener(OnStartButtonClicked);
-        m_quitButton?.onClick.AddListener(OnQuitButtonClicked);
         m_settingButton?.onClick.AddListener(OpenSettings);
         m_soundButton?.onClick.AddListener(ToggleSound);
         m_koreanButton?.onClick.AddListener(() => SetLanguage(false));
@@ -103,8 +101,7 @@ public class MainMenuManager : MonoBehaviour
             m_highWaveText.text = english
                 ? $"HIGHEST WAVE\n{highestWave:N0} Wave"
                 : $"최고 도달 웨이브\n{highestWave:N0} Wave";
-        SetButtonText(m_startButton, english ? "START" : "시작");
-        SetButtonText(m_quitButton, english ? "QUIT" : "종료");
+        SetButtonText(m_startButton, english ? "START" : "게임시작");
         if (m_settingsTitleText != null) m_settingsTitleText.text = english ? "SETTINGS" : "설정";
         if (m_soundButtonText != null)
             m_soundButtonText.text = english
@@ -142,12 +139,4 @@ public class MainMenuManager : MonoBehaviour
 
     void OnStartButtonClicked() => SceneManager.LoadScene(GManager.SCENE_GAME);
 
-    void OnQuitButtonClicked()
-    {
-#if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-#else
-        Application.Quit();
-#endif
-    }
 }

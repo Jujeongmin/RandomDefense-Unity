@@ -36,8 +36,9 @@ public class UnitSpawner : MonoBehaviour
 
     public void Spawn()
     {
-        var econ = GManager.Instance.IsEconomy;
-        if (!econ.CanAfford(econ.SummonCost)) return;
+        GManager game = GManager.Instance;
+        if (game == null || game.IsEconomy == null || game.IsUnitData == null) return;
+        EconomyManager economy = game.IsEconomy;
 
         // 클래스 선택
         int classRoll = Random.Range(0, 3);
@@ -49,15 +50,17 @@ public class UnitSpawner : MonoBehaviour
         };
 
         // 등급 (비율: 50 일반, 33 고급, 10 정예, 6.5 전설, 0.4 신화, 0.1 태초)
-        int rareResearchLevel = GManager.Instance.IsResearch != null
-            ? GManager.Instance.IsResearch.GetLevel(ResearchType.RareSummon)
+        int rareResearchLevel = game.IsResearch != null
+            ? game.IsResearch.GetLevel(ResearchType.RareSummon)
             : 0;
-        RarityType.TYPE rarity = GManager.Instance.Balance != null
-            ? GManager.Instance.Balance.RollRarity(rareResearchLevel)
+        RarityType.TYPE rarity = game.Balance != null
+            ? game.Balance.RollRarity(rareResearchLevel)
             : RarityType.TYPE.Common;
 
+        if (game.IsUnitData.Get(spawnType, (int)rarity) == null) return;
+
         // 비용 지불
-        econ.SpendGold(econ.SummonCost);
+        if (!economy.TrySpend(economy.SummonCost)) return;
 
         ExecuteSpawn(spawnType, rarity, 0f);
     }
@@ -113,9 +116,9 @@ public class UnitSpawner : MonoBehaviour
         go.name = $"Unit_{spawnType}_{m_spawnCount}";
         m_spawnCount++;
 
-        if (go.GetComponent<SpriteLibrary>() == null) go.AddComponent<SpriteLibrary>();
-        if (go.GetComponent<SpriteResolver>() == null) go.AddComponent<SpriteResolver>();
-        if (go.GetComponent<SpriteRenderer>() == null) go.AddComponent<SpriteRenderer>();
+        SpriteLibrary spriteLibrary = GetOrAddComponent<SpriteLibrary>(go);
+        GetOrAddComponent<SpriteResolver>(go);
+        GetOrAddComponent<SpriteRenderer>(go);
 
         var regionMgr = GManager.Instance.IsRegion;
         var region = regionMgr.GetRegionForType(spawnType);
@@ -133,12 +136,11 @@ public class UnitSpawner : MonoBehaviour
         }
 
         // 초기화
-        var spriteLib = go.GetComponent<SpriteLibrary>();
-        if (spriteLib != null && checkData.IsSpLibAsset != null)
-            spriteLib.spriteLibraryAsset = checkData.IsSpLibAsset;
+        if (checkData.IsSpLibAsset != null)
+            spriteLibrary.spriteLibraryAsset = checkData.IsSpLibAsset;
 
         if (go.transform.localScale == Vector3.one) go.transform.localScale = Vector3.one * 0.3f;
-        if (go.GetComponent<Character>() == null) go.AddComponent<Character>();
+        Character character = GetOrAddComponent<Character>(go);
 
         ParentsController controller = go.GetComponent<ParentsController>();
         if (controller == null)
@@ -154,6 +156,7 @@ public class UnitSpawner : MonoBehaviour
 
         controller.Setting(spawnType, index);
         controller.IsRarity = rarity;
+        character.CacheController();
         region.AddUnit(go);
 
         // Show spawn message above the unit using pooled DamageText
@@ -187,6 +190,11 @@ public class UnitSpawner : MonoBehaviour
     public void EndSpawnHold()
     {
         m_spawnHeld = false;
+    }
+
+    static T GetOrAddComponent<T>(GameObject target) where T : Component
+    {
+        return target.TryGetComponent(out T component) ? component : target.AddComponent<T>();
     }
 }
 
