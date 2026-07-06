@@ -82,15 +82,27 @@ public class ParentsController : MonoBehaviour
 
     public virtual void Setting(EntityType.TYPE argEntityType, int argEntityIndex)
     {
+        EntityData data = GManager.Instance != null && GManager.Instance.IsUnitData != null
+            ? GManager.Instance.IsUnitData.Get(argEntityType, argEntityIndex)
+            : null;
+        Setting(data);
+    }
+
+    public virtual void Setting(EntityData data)
+    {
         ResetState();
-        IsSpLib = GetComponent<SpriteLibrary>();
-        IsSpResolver = GetComponent<SpriteResolver>();
-        IsData = GManager.Instance.IsUnitData.Get(argEntityType, argEntityIndex);
+        IsData = data;
+        if (IsData == null) return;
+
+        TryGetComponent(out SpriteLibrary spriteLibrary);
+        TryGetComponent(out SpriteResolver spriteResolver);
+        IsSpLib = spriteLibrary;
+        IsSpResolver = spriteResolver;
+        if (IsSpLib == null || IsSpResolver == null) return;
         IsSpLib.spriteLibraryAsset = IsData.IsSpLibAsset;
         IsSpResolver.SetCategoryAndLabel("IdleDown", "0");
         IsSettingFlag = true;
-        // Set HP from data
-        if (IsData != null) SetMaxHp(IsData.IsHp);
+        SetMaxHp(IsData.IsHp);
     }
 
     void OnTransformParentChanged()
@@ -157,23 +169,11 @@ public class ParentsController : MonoBehaviour
         var mobMgr = GManager.Instance != null ? GManager.Instance.IsMob : null;
         if (mobMgr == null) return;
 
-        MobController closestMob = null;
-        // Legendary and higher rarity units can target the entire battlefield.
         float searchRange = IsRarity >= RarityType.TYPE.Legendary
             ? float.PositiveInfinity
             : IsData.IsSearchLength;
-        float minSqrDistance = searchRange * searchRange;
-
-        foreach (var mob in mobMgr.ActiveMobs)
-        {
-            if (mob == null) continue;
-            float sqrDist = (transform.position - mob.transform.position).sqrMagnitude;
-            if (sqrDist < minSqrDistance)
-            {
-                minSqrDistance = sqrDist;
-                closestMob = mob;
-            }
-        }
+        MobController closestMob = CombatTargetSelector.FindClosest(
+            transform.position, searchRange, mobMgr.ActiveMobs);
 
         if (closestMob != null)
         {
@@ -194,18 +194,10 @@ public class ParentsController : MonoBehaviour
 
         IsDirType = GetDirFromVector(m_targetMob.transform.position - transform.position);
 
-        int baseDamage = IsData != null ? IsData.IsDamage : 10;
-        int level = (GManager.Instance != null && GManager.Instance.IsUpgrade != null) ? GManager.Instance.IsUpgrade.GetClassLevel(IsData.IsEntityType) : 0;
-        
-        bool targetIsBoss = m_targetMob.IsData != null && m_targetMob.IsData.IsEntityType == EntityType.TYPE.Boss;
-        float multiplier = GetDamageMultiplier(IsData.IsEntityType, m_targetMob.IsData.IsSpeciesType);
-        float researchMultiplier = GManager.Instance != null && GManager.Instance.IsResearch != null
-            ? GManager.Instance.IsResearch.AttackMultiplier
-            : 1f;
-        float bossMultiplier = targetIsBoss && GManager.Instance != null && GManager.Instance.IsResearch != null
-            ? GManager.Instance.IsResearch.BossDamageMultiplier
-            : 1f;
-        int finalDamage = Mathf.RoundToInt(baseDamage * (1f + (level - 1) * 0.1f) * multiplier * researchMultiplier * bossMultiplier);
+        GManager game = GManager.Instance;
+        int finalDamage = CombatDamageCalculator.Calculate(
+            IsData, m_targetMob.IsData, game != null ? game.Balance : null,
+            game != null ? game.IsUpgrade : null, game != null ? game.IsResearch : null);
 
         m_targetMob.TakeDamage(finalDamage);
 
@@ -221,36 +213,6 @@ public class ParentsController : MonoBehaviour
                 m_atkEffectObj.SetActive(true);
             }
         }
-    }
-
-    float GetDamageMultiplier(EntityType.TYPE attacker, SpeciesType.TYPE target)
-    {
-        if (GManager.Instance != null && GManager.Instance.Balance != null)
-        {
-            return GManager.Instance.Balance.GetDamageMultiplier(attacker, target);
-        }
-
-        if (target == SpeciesType.TYPE.None) return 1.0f;
-
-        switch (attacker)
-        {
-            case EntityType.TYPE.Wizard:
-                if (target == SpeciesType.TYPE.Undead) return 1.0f;
-                if (target == SpeciesType.TYPE.Orc) return 0.8f;
-                if (target == SpeciesType.TYPE.Troll) return 0.6f;
-                break;
-            case EntityType.TYPE.Archer:
-                if (target == SpeciesType.TYPE.Orc) return 1.0f;
-                if (target == SpeciesType.TYPE.Undead) return 0.8f;
-                if (target == SpeciesType.TYPE.Troll) return 0.8f;
-                break;
-            case EntityType.TYPE.Warrior:
-                if (target == SpeciesType.TYPE.Troll) return 1.0f;
-                if (target == SpeciesType.TYPE.Orc) return 0.8f;
-                if (target == SpeciesType.TYPE.Undead) return 0.6f;
-                break;
-        }
-        return 1.0f;
     }
 
     public virtual void TakeDamage(int damage)
@@ -406,5 +368,47 @@ public class ParentsController : MonoBehaviour
     {
         if (Mathf.Approximately(b, 0f)) return a;
         return a / b;
+    }
+}
+
+static class CombatTargetSelector
+{
+    public static MobController FindClosest(Vector3 origin, float range, System.Collections.Generic.IReadOnlyList<MobController> mobs)
+    {
+        if (mobs == null) return null;
+        MobController closest = null;
+        float closestSqrDistance = range * range;
+
+        for (int i = 0; i < mobs.Count; i++)
+        {
+            MobController mob = mobs[i];
+            if (mob == null || !mob.isActiveAndEnabled) continue;
+            float sqrDistance = (origin - mob.transform.position).sqrMagnitude;
+            if (sqrDistance >= closestSqrDistance) continue;
+            closestSqrDistance = sqrDistance;
+            closest = mob;
+        }
+        return closest;
+    }
+}
+
+static class CombatDamageCalculator
+{
+    public static int Calculate(EntityData attacker, EntityData target, GameBalanceData balance,
+        UpgradeManager upgrades, ResearchManager research)
+    {
+        if (attacker == null) return 0;
+
+        int level = upgrades != null ? upgrades.GetClassLevel(attacker.IsEntityType) : 1;
+        SpeciesType.TYPE targetSpecies = target != null ? target.IsSpeciesType : SpeciesType.TYPE.None;
+        float affinity = balance != null
+            ? balance.GetDamageMultiplier(attacker.IsEntityType, targetSpecies)
+            : 1f;
+        float attackResearch = research != null ? research.AttackMultiplier : 1f;
+        bool isBoss = target != null && target.IsEntityType == EntityType.TYPE.Boss;
+        float bossResearch = isBoss && research != null ? research.BossDamageMultiplier : 1f;
+
+        return Mathf.Max(0, Mathf.RoundToInt(attacker.IsDamage *
+            (1f + Mathf.Max(0, level - 1) * 0.1f) * affinity * attackResearch * bossResearch));
     }
 }

@@ -16,6 +16,8 @@ public class MobManager : MonoBehaviour
 
     public SpeciesType.TYPE CurrentSpecies { get; private set; } = SpeciesType.TYPE.None;
     public event System.Action<SpeciesType.TYPE> SpeciesChanged;
+    float m_waveDeadline;
+    public float WaveTimeRemaining => Mathf.Max(0f, m_waveDeadline - Time.time);
     [Header("Wave Settings")]
     [SerializeField] int m_currentWave = 1;
     [SerializeField] int m_maxWave = 50;
@@ -140,26 +142,17 @@ public class MobManager : MonoBehaviour
         {
             if (m_currentWave % 10 == 0)
             {
-                m_waveText.text = $"Wave {m_currentWave} (BOSS)";
+                m_waveText.text = GameLanguage.Choose($"웨이브 {m_currentWave} (보스)", $"WAVE {m_currentWave} (BOSS)");
             }
             else
             {
-                m_waveText.text = $"Wave {m_currentWave}";
+                m_waveText.text = GameLanguage.Choose($"웨이브 {m_currentWave}", $"WAVE {m_currentWave}");
             }
         }
     }
 
-    void UpdateWaveInfoUI(int mobIndex)
+    void UpdateWaveInfoUI(EntityData data)
     {
-        var unitDataMgr = GManager.Instance != null ? GManager.Instance.IsUnitData : null;
-        if (unitDataMgr == null)
-        {
-            if (m_waveSpeciesText != null) m_waveSpeciesText.text = string.Empty;
-            if (m_waveMobImage != null) m_waveMobImage.gameObject.SetActive(false);
-            return;
-        }
-
-        var data = unitDataMgr.Get(EntityType.TYPE.Mob, mobIndex);
         if (data != null)
         {
             SetCurrentSpecies(data.IsSpeciesType);
@@ -168,13 +161,13 @@ public class MobManager : MonoBehaviour
                 switch(data.IsSpeciesType)
                 {
                     case SpeciesType.TYPE.Orc:
-                        m_waveSpeciesText.text = "오크";
+                        m_waveSpeciesText.text = GameLanguage.Choose("오크", "ORC");
                         break;
                     case SpeciesType.TYPE.Troll:
-                        m_waveSpeciesText.text = "트롤";
+                        m_waveSpeciesText.text = GameLanguage.Choose("트롤", "TROLL");
                         break;
                     case SpeciesType.TYPE.Undead:
-                        m_waveSpeciesText.text = "언데드";
+                        m_waveSpeciesText.text = GameLanguage.Choose("언데드", "UNDEAD");
                         break;
                     default:
                         m_waveSpeciesText.text = data.IsSpeciesType.ToString();
@@ -214,13 +207,14 @@ public class MobManager : MonoBehaviour
 
             if (isBossWave)
             {
+                SetWaveCountdown(bossTimeLimit);
                 if (m_bossTimerText != null)
                 {
                     m_bossTimerText.gameObject.SetActive(true);
                 }
                 if (m_waveSpeciesText != null)
                 {
-                    m_waveSpeciesText.text = "BOSS WAVE";
+                    m_waveSpeciesText.text = GameLanguage.Choose("보스 웨이브", "BOSS WAVE");
                 }
                 if (m_waveMobImage != null)
                 {
@@ -235,7 +229,7 @@ public class MobManager : MonoBehaviour
                     timer -= Time.deltaTime;
                     if (m_bossTimerText != null)
                     {
-                        m_bossTimerText.text = $"Boss Time: {timer:F1}s";
+                        m_bossTimerText.text = GameLanguage.Choose($"보스 시간: {timer:F1}초", $"BOSS TIME: {timer:F1}s");
                     }
                     yield return null;
                 }
@@ -269,46 +263,39 @@ public class MobManager : MonoBehaviour
             }
             else
             {
+                SetWaveCountdown(mobsPerWave * spawnInterval + waveInterval);
                 SpeciesType.TYPE chosenSpecies = SpeciesPool[Random.Range(0, SpeciesPool.Length)];
 
                 var unitDataMgr = GManager.Instance != null ? GManager.Instance.IsUnitData : null;
-                int chosenIndex = 0;
-                if (unitDataMgr != null)
-                {
-                    var indices = unitDataMgr.GetIndicesForSpecies(EntityType.TYPE.Mob, chosenSpecies);
-                    if (indices != null && indices.Count > 0)
-                    {
-                        chosenIndex = indices[Random.Range(0, indices.Count)];
-                    }
-                }
+                EntityData chosenData = unitDataMgr != null
+                    ? unitDataMgr.GetRandomForSpecies(EntityType.TYPE.Mob, chosenSpecies)
+                    : null;
 
-                UpdateWaveInfoUI(chosenIndex);
+                UpdateWaveInfoUI(chosenData);
 
                 while (m_spawnedInWave < mobsPerWave)
                 {
-                    SpawnMob(chosenIndex);
+                    SpawnMob(chosenData);
                     m_spawnedInWave++;
                     yield return new WaitForSeconds(spawnInterval);
                 }
             }
 
+            SetWaveCountdown(waveInterval);
             yield return new WaitForSeconds(waveInterval);
             m_currentWave++;
         }
     }
 
-    void SpawnMob(int mobIndex)
+    void SpawnMob(EntityData data)
     {
         if (!HasSpawnRegion()) return;
 
         var mobCtrl = CreateMobController($"Mob_W{m_currentWave}_{m_spawnedInWave}");
 
-        var unitDataMgr = GManager.Instance != null ? GManager.Instance.IsUnitData : null;
-        var data = unitDataMgr != null ? unitDataMgr.Get(EntityType.TYPE.Mob, mobIndex) : null;
-
         if (data != null)
         {
-            mobCtrl.Setting(EntityType.TYPE.Mob, mobIndex);
+            mobCtrl.Setting(data);
 
             int baseHp = data.IsHp;
             int scaledHp = baseHp + (m_currentWave - 1) * (baseHp / 5);
@@ -371,6 +358,7 @@ public class MobManager : MonoBehaviour
 
     public void OnMobDestroyed(bool giveReward, bool isBoss = false)
     {
+        GameAudioManager.Play(isBoss ? GameAudioManager.Sfx.BossDeath : GameAudioManager.Sfx.MobDeath);
         m_spawnCount = Mathf.Max(0, m_spawnCount - 1);
         UpdateMobCountText();
 
@@ -422,24 +410,26 @@ public class MobManager : MonoBehaviour
     void SpawnBoss()
     {
         if (!HasSpawnRegion()) return;
+        GameAudioManager.EnterBoss();
 
         var mobCtrl = CreateMobController($"Boss_W{m_currentWave}");
 
         var unitDataMgr = GManager.Instance != null ? GManager.Instance.IsUnitData : null;
 
-        var data = unitDataMgr != null ? unitDataMgr.Get(EntityType.TYPE.Boss, 0) : null;
-        bool usingFallback = false;
+        SpeciesType.TYPE bossSpecies = SpeciesPool[Random.Range(0, SpeciesPool.Length)];
+        var data = unitDataMgr != null
+            ? unitDataMgr.GetRandomForSpecies(EntityType.TYPE.Boss, bossSpecies)
+            : null;
         if (data == null && unitDataMgr != null)
         {
-            data = unitDataMgr.Get(EntityType.TYPE.Mob, 0);
-            usingFallback = true;
-            Debug.LogWarning("Boss data not found in UnitDataManager! Falling back to Mob index 0.");
+            data = unitDataMgr.GetRandomForSpecies(EntityType.TYPE.Mob, bossSpecies);
+            Debug.LogWarning($"Boss data for {bossSpecies} was not found. Falling back to a matching normal mob.");
         }
 
         if (data != null)
         {
             SetCurrentSpecies(data.IsSpeciesType);
-            mobCtrl.Setting(usingFallback ? EntityType.TYPE.Mob : EntityType.TYPE.Boss, data.IsEntityIndex);
+            mobCtrl.Setting(data);
 
             int baseHp = data.IsHp;
             int scaledHp = baseHp * 15 + (m_currentWave - 1) * (baseHp * 3);
@@ -459,6 +449,11 @@ public class MobManager : MonoBehaviour
         SpeciesChanged?.Invoke(species);
     }
 
+    void SetWaveCountdown(float duration)
+    {
+        m_waveDeadline = Time.time + Mathf.Max(0f, duration);
+    }
+
     // Called by other systems when the active boss has been defeated (clears reference)
     public void NotifyBossDefeated(MobController boss)
     {
@@ -466,6 +461,7 @@ public class MobManager : MonoBehaviour
         if (m_activeBoss == boss)
         {
             m_activeBoss = null;
+            GameAudioManager.ExitBoss();
             Debug.Log("MobManager: active boss cleared after defeat.");
         }
     }

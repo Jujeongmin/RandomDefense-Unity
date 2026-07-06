@@ -27,11 +27,21 @@ public class UpgradeManager : MonoBehaviour
 
     public void Initialize()
     {
+        ApplySafeArea();
         ConfigureLabel(m_wizardLvText);
         ConfigureLabel(m_archerLvText);
         ConfigureLabel(m_warriorLvText);
         BindMobManager(GManager.Instance != null ? GManager.Instance.IsMob : null);
         UpdateUpgradeUI();
+    }
+
+    void OnRectTransformDimensionsChange() => ApplySafeArea();
+
+    void ApplySafeArea()
+    {
+        RectTransform label = m_wizardLvText != null ? m_wizardLvText.rectTransform : null;
+        RectTransform card = label != null ? label.parent as RectTransform : null;
+        MobileSafeAreaLayout.ApplyBottom(card != null ? card.parent as RectTransform : null);
     }
 
     static void ConfigureLabel(TextMeshProUGUI label)
@@ -105,15 +115,16 @@ public class UpgradeManager : MonoBehaviour
         if (economy != null && economy.TrySpend(cost))
         {
             level++;
+            GameAudioManager.Play(GameAudioManager.Sfx.Upgrade);
             UpdateUpgradeUI();
         }
     }
 
     public void UpdateUpgradeUI()
     {
-        SetUpgradeText(m_wizardLvText, "마법사", EntityType.TYPE.Wizard, m_wizardLevel);
-        SetUpgradeText(m_archerLvText, "궁수", EntityType.TYPE.Archer, m_archerLevel);
-        SetUpgradeText(m_warriorLvText, "전사", EntityType.TYPE.Warrior, m_warriorLevel);
+        SetUpgradeText(m_wizardLvText, GameLanguage.Choose("마법사", "WIZARD"), EntityType.TYPE.Wizard, m_wizardLevel);
+        SetUpgradeText(m_archerLvText, GameLanguage.Choose("궁수", "ARCHER"), EntityType.TYPE.Archer, m_archerLevel);
+        SetUpgradeText(m_warriorLvText, GameLanguage.Choose("전사", "WARRIOR"), EntityType.TYPE.Warrior, m_warriorLevel);
     }
 
     void SetUpgradeText(TextMeshProUGUI label, string className, EntityType.TYPE type, int level)
@@ -130,8 +141,7 @@ public class UpgradeManager : MonoBehaviour
         float multiplier = balance != null ? balance.GetDamageMultiplier(type, m_targetSpecies) : 1f;
         int percent = Mathf.RoundToInt(multiplier * 100f);
 
-        if (percent >= 100) return $"<color=#FFD447>👍 {percent}%</color>";
-        if (percent >= 80) return $"<color=#FFFFFF>{percent}%</color>";
-        return $"<color=#FF7A7A>{percent}%</color>";
+        if (percent >= 100) return $"<color=#FFD447>{percent}%</color>";
+        return $"<color=#FFFFFF>{percent}%</color>";
     }
 }

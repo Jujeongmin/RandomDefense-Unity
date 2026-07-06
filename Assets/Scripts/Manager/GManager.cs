@@ -34,6 +34,7 @@ public class GManager : MonoBehaviour
 
     bool m_gameOver = false;
     bool m_runRewardGranted = false;
+    readonly UnitSaleService m_unitSaleService = new UnitSaleService();
 
     [Header("Debug (Inspector)")]
     [SerializeField] bool m_testGameOver = false;
@@ -111,7 +112,6 @@ public class GManager : MonoBehaviour
     public void RegisterSettingsPanel(GameObject panel)
     {
         m_settingsPanel = panel;
-        if (m_settingsPanel != null) m_settingsPanel.SetActive(false);
     }
 
     public void RegisterDamageTextParent(Transform parent)
@@ -247,6 +247,9 @@ public class GManager : MonoBehaviour
         }
         else if (scene.name == SCENE_GAME)
         {
+            ResultPanel sceneResultPanel = FindAnyObjectByType<ResultPanel>(FindObjectsInactive.Include);
+            if (sceneResultPanel != null) RegisterResultPanel(sceneResultPanel);
+
             // 게임씬: 풀 초기화 후 매니저들은 각자 Start에서 등록됨
             StartCoroutine(DelayedInitializeManagers());
             if (m_resultPanel != null) m_resultPanel.gameObject.SetActive(false);
@@ -302,6 +305,7 @@ public class GManager : MonoBehaviour
     public void HandleDefeat()
     {
         if (m_gameOver) return;
+        GameAudioManager.Play(GameAudioManager.Sfx.Defeat);
         m_gameOver = true;
         Time.timeScale = 0f;
         int currentWave = m_mobManager != null ? m_mobManager.CurrentWave : 1;
@@ -315,6 +319,7 @@ public class GManager : MonoBehaviour
     public void HandleVictory()
     {
         if (m_gameOver) return;
+        GameAudioManager.Play(GameAudioManager.Sfx.Victory);
         m_gameOver = true;
         Time.timeScale = 0f;
         int currentWave = m_mobManager != null ? m_mobManager.CurrentWave : 1;
@@ -365,23 +370,25 @@ public class GManager : MonoBehaviour
     {
         string className = classType switch
         {
-            EntityType.TYPE.Wizard => "마법사",
-            EntityType.TYPE.Archer => "궁수",
-            EntityType.TYPE.Warrior => "전사",
-            _ => "영웅"
+            EntityType.TYPE.Wizard => GameLanguage.Choose("마법사", "WIZARD"),
+            EntityType.TYPE.Archer => GameLanguage.Choose("궁수", "ARCHER"),
+            EntityType.TYPE.Warrior => GameLanguage.Choose("전사", "WARRIOR"),
+            _ => GameLanguage.Choose("영웅", "HERO")
         };
         string rarityName = rarity switch
         {
-            RarityType.TYPE.Common => "일반",
-            RarityType.TYPE.Rare => "고급",
-            RarityType.TYPE.Elite => "정예",
-            RarityType.TYPE.Legendary => "전설",
-            RarityType.TYPE.Mythic => "신화",
-            RarityType.TYPE.Eternal => "태초",
+            RarityType.TYPE.Common => GameLanguage.Choose("일반", "COMMON"),
+            RarityType.TYPE.Rare => GameLanguage.Choose("고급", "RARE"),
+            RarityType.TYPE.Elite => GameLanguage.Choose("정예", "ELITE"),
+            RarityType.TYPE.Legendary => GameLanguage.Choose("전설", "LEGENDARY"),
+            RarityType.TYPE.Mythic => GameLanguage.Choose("신화", "MYTHIC"),
+            RarityType.TYPE.Eternal => GameLanguage.Choose("태초", "ETERNAL"),
             _ => rarity.ToString()
         };
 
-        string msg = string.Format("{0}% {1} {2}등급 소환", percent.ToString("F1"), className, rarityName);
+        string msg = GameLanguage.IsEnglish
+            ? string.Format("{0}% {1} {2}", percent.ToString("F1"), rarityName, className)
+            : string.Format("{0}% {1} {2}등급 소환", percent.ToString("F1"), className, rarityName);
 
         if (rarity >= RarityType.TYPE.Mythic)
         {
@@ -456,28 +463,9 @@ public class GManager : MonoBehaviour
 
     public int SellUnits(EntityType.TYPE type, RarityType.TYPE rarity, int requestedAmount)
     {
-        if (m_regionManager == null || m_economyManager == null) return 0;
-
-        int owned = GetUnitCount(type, rarity);
-        int targetAmount = requestedAmount <= 0 ? owned : Mathf.Min(requestedAmount, owned);
-        int sold = 0;
-
-        foreach (Region region in m_regionManager.GetRegions())
-        {
-            if (region == null || region.OccupiedType != type) continue;
-            while (sold < targetAmount)
-            {
-                GameObject unitGo = region.FindAndRemoveUnitByRarity(rarity);
-                if (unitGo == null) break;
-
-                if (m_poolManager != null) m_poolManager.ReturnUnit(unitGo);
-                else Destroy(unitGo);
-                sold++;
-            }
-            if (sold >= targetAmount) break;
-        }
-
-        if (sold > 0) m_economyManager.AddGold(GetSellPrice(rarity) * sold);
+        int sold = m_unitSaleService.Sell(type, rarity, requestedAmount,
+            m_regionManager, m_economyManager, m_poolManager, GetSellPrice(rarity));
+        if (sold > 0) GameAudioManager.Play(GameAudioManager.Sfx.Sell);
         if (m_classRarityDisplay != null) m_classRarityDisplay.UpdateRarityImages(type);
         return sold;
     }
@@ -521,5 +509,35 @@ public class GManager : MonoBehaviour
     int GetSellPrice(RarityType.TYPE rarity)
     {
         return m_balanceData != null ? m_balanceData.GetSellPrice(rarity) : 0;
+    }
+}
+
+sealed class UnitSaleService
+{
+    public int Sell(EntityType.TYPE type, RarityType.TYPE rarity, int requestedAmount,
+        RegionManager regions, EconomyManager economy, PoolManager pool, int unitPrice)
+    {
+        if (regions == null || economy == null) return 0;
+
+        int owned = regions.GetCountByClassAndRarity(type, rarity);
+        int targetAmount = requestedAmount <= 0 ? owned : Mathf.Min(requestedAmount, owned);
+        int sold = 0;
+
+        foreach (Region region in regions.GetRegions())
+        {
+            if (region == null || region.OccupiedType != type) continue;
+            while (sold < targetAmount)
+            {
+                GameObject unit = region.FindAndRemoveUnitByRarity(rarity);
+                if (unit == null) break;
+                if (pool != null) pool.ReturnUnit(unit);
+                else Object.Destroy(unit);
+                sold++;
+            }
+            if (sold >= targetAmount) break;
+        }
+
+        if (sold > 0) economy.AddGold(unitPrice * sold);
+        return sold;
     }
 }

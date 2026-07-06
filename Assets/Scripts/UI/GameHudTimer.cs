@@ -1,29 +1,53 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class GameHudTimer : MonoBehaviour
 {
     [SerializeField] TextMeshProUGUI m_timerText;
-    float m_elapsedTime;
+    [SerializeField] Button m_settingButton;
+    [SerializeField] SettingPanel m_settingPanel;
+    Vector2Int m_screenSize;
 
-    void OnEnable()
+    void Start()
     {
-        m_elapsedTime = 0f;
-        RefreshText();
+        if (m_settingButton != null) m_settingButton.onClick.AddListener(OpenSettings);
+    }
+
+    void OnDestroy()
+    {
+        if (m_settingButton != null) m_settingButton.onClick.RemoveListener(OpenSettings);
+    }
+
+    void OpenSettings()
+    {
+        if (m_settingPanel == null) return;
+        if (GManager.Instance != null) GManager.Instance.RegisterSettingsPanel(m_settingPanel.gameObject);
+        m_settingPanel.gameObject.SetActive(true);
+        Time.timeScale = 0f;
     }
 
     void Update()
     {
-        m_elapsedTime += Time.deltaTime;
+        Vector2Int currentSize = new Vector2Int(Screen.width, Screen.height);
+        if (currentSize != m_screenSize)
+        {
+            MobileSafeAreaLayout.ApplyTop(transform as RectTransform);
+            m_screenSize = currentSize;
+        }
         RefreshText();
     }
 
     void RefreshText()
     {
         if (m_timerText == null) return;
-        int minutes = Mathf.FloorToInt(m_elapsedTime / 60f);
-        int seconds = Mathf.FloorToInt(m_elapsedTime % 60f);
-        int centiseconds = Mathf.FloorToInt((m_elapsedTime * 100f) % 100f);
-        m_timerText.text = $"{minutes:00}:{seconds:00}.{centiseconds:00}";
+        MobManager mobManager = GManager.Instance != null ? GManager.Instance.IsMob : null;
+        if (mobManager == null)
+        {
+            m_timerText.text = "--:--";
+            return;
+        }
+
+        m_timerText.text = mobManager.WaveTimeRemaining.ToString("F2");
     }
 }

@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d0b9535c4ad41379dd3c5b941299f13, type: 3}
+  m_Name: GameAudioLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::GameAudioLibrary
+  mainBgm: {fileID: 8300000, guid: 5920a7a3cd728b044be8798d093e76c9, type: 3}
+  battleBgm: {fileID: 8300000, guid: e1498228ec83c694b84151ba9e7c20b7, type: 3}
+  bossBgm: {fileID: 8300000, guid: f1b48aae2a93fd64eb652bbee7fbb36a, type: 3}
+  buttonClick: {fileID: 8300000, guid: fae889947761d4b488198e26126c5395, type: 3}
+  confirm: {fileID: 8300000, guid: 76955ce25c6048a40960032c139d3bd3, type: 3}
+  error: {fileID: 8300000, guid: 755ddb80a0a08b048945fc3a5bebe4fa, type: 3}
+  summon: {fileID: 8300000, guid: d90bd30e305cd5043b2c6677f5d90e32, type: 3}
+  sell: {fileID: 8300000, guid: 63ad9b5e17751d44cab712760cb6f766, type: 3}
+  upgrade: {fileID: 8300000, guid: 6e20113bc7492394ba01c41c0d4a0708, type: 3}
+  mobDeath: {fileID: 8300000, guid: 25e25ec18c56297469b242a0371c2164, type: 3}
+  bossDeath: {fileID: 8300000, guid: 1fcf5751d88eb63428506ea536ee1f0c, type: 3}
+  victory: {fileID: 8300000, guid: 96c587d52ec21e14885e4a6318177f1f, type: 3}
+  defeat: {fileID: 8300000, guid: 59488f7e03a18b74780de3b17742b7ac, type: 3}

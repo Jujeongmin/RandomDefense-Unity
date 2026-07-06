@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class MainMenuManager : MonoBehaviour
@@ -13,8 +14,10 @@ public class MainMenuManager : MonoBehaviour
     [Header("Settings UI")]
     [SerializeField] GameObject m_settingPanel;
     [SerializeField] TextMeshProUGUI m_settingsTitleText;
-    [SerializeField] Button m_soundButton;
-    [SerializeField] TextMeshProUGUI m_soundButtonText;
+    [FormerlySerializedAs("m_soundButton"), SerializeField] Button m_bgmButton;
+    [FormerlySerializedAs("m_soundButtonText"), SerializeField] TextMeshProUGUI m_bgmButtonText;
+    [SerializeField] Button m_sfxButton;
+    [SerializeField] TextMeshProUGUI m_sfxButtonText;
     [SerializeField] Button m_koreanButton;
     [SerializeField] Button m_englishButton;
     [SerializeField] Button m_resetButton;
@@ -22,23 +25,22 @@ public class MainMenuManager : MonoBehaviour
     [SerializeField] Button m_closeButton;
     [SerializeField] TextMeshProUGUI m_closeButtonText;
 
-    const string SoundEnabledKey = "RandomDefense.SoundEnabled";
-    const string LanguageKey = "RandomDefense.Language";
     bool m_resetConfirmationPending;
 
-    bool IsEnglish => PlayerPrefs.GetInt(LanguageKey, 0) == 1;
+    bool IsEnglish => GameLanguage.IsEnglish;
 
     void Start()
     {
         m_startButton?.onClick.AddListener(OnStartButtonClicked);
         m_settingButton?.onClick.AddListener(OpenSettings);
-        m_soundButton?.onClick.AddListener(ToggleSound);
+        EnsureSeparateSoundButtons();
+        m_bgmButton?.onClick.AddListener(ToggleBgm);
+        m_sfxButton?.onClick.AddListener(ToggleSfx);
         m_koreanButton?.onClick.AddListener(() => SetLanguage(false));
         m_englishButton?.onClick.AddListener(() => SetLanguage(true));
         m_resetButton?.onClick.AddListener(OnResetButtonClicked);
         m_closeButton?.onClick.AddListener(CloseSettings);
 
-        AudioListener.volume = PlayerPrefs.GetInt(SoundEnabledKey, 1) == 1 ? 1f : 0f;
         if (m_settingPanel != null) m_settingPanel.SetActive(false);
         ApplyLanguage();
         Time.timeScale = 1f;
@@ -59,18 +61,38 @@ public class MainMenuManager : MonoBehaviour
         if (m_settingPanel != null) m_settingPanel.SetActive(false);
     }
 
-    void ToggleSound()
+    void ToggleBgm()
     {
-        bool enabled = AudioListener.volume <= 0f;
-        AudioListener.volume = enabled ? 1f : 0f;
-        PlayerPrefs.SetInt(SoundEnabledKey, enabled ? 1 : 0);
-        PlayerPrefs.Save();
+        GameAudioSettings.ToggleBgm();
         ApplyLanguage();
+    }
+
+    void ToggleSfx()
+    {
+        GameAudioSettings.ToggleSfx();
+        ApplyLanguage();
+    }
+
+    void EnsureSeparateSoundButtons()
+    {
+        if (m_bgmButton == null || m_sfxButton != null) return;
+        RectTransform bgmRect = m_bgmButton.transform as RectTransform;
+        float y = bgmRect != null ? bgmRect.anchoredPosition.y : 155f;
+        if (bgmRect != null)
+        {
+            bgmRect.anchoredPosition = new Vector2(-100f, y);
+            bgmRect.sizeDelta = new Vector2(180f, bgmRect.sizeDelta.y);
+        }
+        m_sfxButton = Instantiate(m_bgmButton, m_bgmButton.transform.parent);
+        m_sfxButton.name = "SfxButton";
+        RectTransform sfxRect = m_sfxButton.transform as RectTransform;
+        if (sfxRect != null) sfxRect.anchoredPosition = new Vector2(100f, y);
+        m_sfxButtonText = m_sfxButton.GetComponentInChildren<TextMeshProUGUI>(true);
     }
 
     void SetLanguage(bool english)
     {
-        PlayerPrefs.SetInt(LanguageKey, english ? 1 : 0);
+        PlayerPrefs.SetInt(GameLanguage.PreferenceKey, english ? 1 : 0);
         PlayerPrefs.Save();
         m_resetConfirmationPending = false;
         ApplyLanguage();
@@ -103,10 +125,14 @@ public class MainMenuManager : MonoBehaviour
                 : $"최고 도달 웨이브\n{highestWave:N0} Wave";
         SetButtonText(m_startButton, english ? "START" : "게임시작");
         if (m_settingsTitleText != null) m_settingsTitleText.text = english ? "SETTINGS" : "설정";
-        if (m_soundButtonText != null)
-            m_soundButtonText.text = english
-                ? (AudioListener.volume > 0f ? "SOUND  ON" : "SOUND  OFF")
+        if (m_bgmButtonText != null)
+            m_bgmButtonText.text = $"BGM  {(GameAudioSettings.BgmEnabled ? "ON" : "OFF")}";
+        if (m_sfxButtonText != null)
+            m_sfxButtonText.text = $"SFX  {(GameAudioSettings.SfxEnabled ? "ON" : "OFF")}";
+        /*
                 : (AudioListener.volume > 0f ? "사운드  켜짐" : "사운드  꺼짐");
+        if (m_closeButtonText != null) m_closeButtonText.text = english ? "CLOSE" : "닫기";
+        */
         if (m_closeButtonText != null) m_closeButtonText.text = english ? "CLOSE" : "닫기";
         RefreshResetLabel();
 

@@ -25,7 +25,11 @@ public class ResultPanel : MonoBehaviour
     {
         if (GManager.Instance != null && GManager.Instance.IsResultPanel != this)
             GManager.Instance.RegisterResultPanel(this);
+#if UNITY_EDITOR
         m_rewardedAdService = new MockCommerceService();
+#else
+        m_rewardedAdService = AdMobRewardedAdService.Shared;
+#endif
         if (m_restartButton != null) m_restartButton.onClick.AddListener(ClaimBasicReward);
         if (m_exitButton != null) m_exitButton.onClick.AddListener(ClaimDoubleReward);
     }
@@ -36,20 +40,25 @@ public class ResultPanel : MonoBehaviour
         m_claimingReward = false;
         m_rewardAmount = GManager.Instance != null ? GManager.Instance.GetPendingRunCrystalReward() : 0;
 
-        SetButtonLabel(m_restartButton, "보상받기");
-        SetButtonLabel(m_exitButton, "광고 보고 2배 받기", true);
+        SetButtonLabel(m_restartButton, GameLanguage.Choose("보상받기", "CLAIM"));
+        SetButtonLabel(m_exitButton, GameLanguage.Choose("광고 보고 2배 받기", "WATCH AD · CLAIM X2"), true);
         SetRewardAmount(m_basicRewardAmountText, m_rewardAmount);
         SetRewardAmount(m_doubleRewardAmountText, m_rewardAmount * 2);
+        RefreshRewardedButton();
 
         if (m_titleText != null)
         {
-            m_titleText.text = isClear ? "게임 클리어" : "게임 오버";
+            m_titleText.text = isClear
+                ? GameLanguage.Choose("게임 클리어", "VICTORY")
+                : GameLanguage.Choose("게임 오버", "GAME OVER");
             m_titleText.color = isClear ? m_clearColor : m_gameOverColor;
         }
 
         if (m_detailsText != null)
         {
-            string result = isClear ? "50웨이브를 클리어했습니다." : $"{finalWave}웨이브에 도달했습니다.";
+            string result = isClear
+                ? GameLanguage.Choose("50웨이브를 클리어했습니다.", "YOU CLEARED WAVE 50!")
+                : GameLanguage.Choose($"{finalWave}웨이브에 도달했습니다.", $"YOU REACHED WAVE {finalWave}.");
             m_detailsText.text = result;
         }
     }
@@ -63,7 +72,7 @@ public class ResultPanel : MonoBehaviour
 
     void ClaimDoubleReward()
     {
-        if (m_claimingReward) return;
+        if (m_claimingReward || m_rewardedAdService == null || !m_rewardedAdService.IsReady) return;
         m_claimingReward = true;
         m_rewardedAdService.Show(success =>
         {
@@ -71,9 +80,26 @@ public class ResultPanel : MonoBehaviour
             else
             {
                 m_claimingReward = false;
-                if (m_detailsText != null) m_detailsText.text = "광고를 불러오지 못했습니다. 다시 시도해 주세요.";
+                if (m_detailsText != null)
+                    m_detailsText.text = GameLanguage.Choose(
+                        "광고를 불러오지 못했습니다. 다시 시도해 주세요.",
+                        "THE AD COULD NOT BE LOADED. PLEASE TRY AGAIN.");
             }
         });
+    }
+
+    void Update()
+    {
+        if (gameObject.activeInHierarchy) RefreshRewardedButton();
+    }
+
+    void RefreshRewardedButton()
+    {
+        if (m_exitButton == null) return;
+        PlayerProgressManager progress = GManager.Instance != null ? GManager.Instance.IsProgress : null;
+        bool adsAllowed = progress != null && !progress.AdsRemoved;
+        m_exitButton.gameObject.SetActive(adsAllowed);
+        if (adsAllowed) m_exitButton.interactable = !m_claimingReward && m_rewardedAdService != null && m_rewardedAdService.IsReady;
     }
 
     void CompleteClaim(int multiplier)

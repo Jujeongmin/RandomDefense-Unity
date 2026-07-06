@@ -36,7 +36,65 @@ public class SellPanelUI : MonoBehaviour
         m_closeButton?.onClick.AddListener(() => gameObject.SetActive(false));
     }
 
-    void OnEnable() => Refresh();
+    void OnEnable()
+    {
+        ApplyLanguage();
+        Refresh();
+    }
+
+    void ApplyLanguage()
+    {
+        string[] classNames = GameLanguage.IsEnglish
+            ? new[] { "WIZARD", "ARCHER", "WARRIOR" }
+            : new[] { "마법사", "궁수", "전사" };
+        for (int i = 0; i < classNames.Length; i++) SetButtonLabel(GetAt(m_classButtons, i), classNames[i]);
+
+        string[] rarityNames = GameLanguage.IsEnglish
+            ? new[] { "COMMON", "RARE", "ELITE", "LEGEND", "MYTHIC", "ETERNAL" }
+            : new[] { "일반", "고급", "정예", "전설", "신화", "태초" };
+        for (int i = 0; i < Rarities.Length; i++)
+        {
+            Button button = GetAt(m_rarityButtons, i);
+            if (button == null) continue;
+            TextMeshProUGUI[] texts = button.GetComponentsInChildren<TextMeshProUGUI>(true);
+            TextMeshProUGUI count = GetAt(m_countTexts, i);
+            TextMeshProUGUI price = GetAt(m_priceTexts, i);
+            foreach (TextMeshProUGUI text in texts)
+                if (text != count && text != price) { text.text = rarityNames[i]; break; }
+        }
+
+        RectTransform content = m_closeButton != null ? m_closeButton.transform.parent as RectTransform : null;
+        if (content == null) return;
+        TextMeshProUGUI topText = null;
+        TextMeshProUGUI lowerText = null;
+        foreach (Transform child in content)
+        {
+            TextMeshProUGUI text = child.GetComponent<TextMeshProUGUI>();
+            if (text == null) continue;
+            if (topText == null || text.rectTransform.anchoredPosition.y > topText.rectTransform.anchoredPosition.y)
+            {
+                lowerText = topText;
+                topText = text;
+            }
+            else if (lowerText == null || text.rectTransform.anchoredPosition.y > lowerText.rectTransform.anchoredPosition.y)
+                lowerText = text;
+        }
+        if (topText != null) topText.text = GameLanguage.Choose("한 번에 판매할 개수를 선택할 수 있어요", "CHOOSE HOW MANY TO SELL AT ONCE");
+        if (lowerText != null) lowerText.text = GameLanguage.Choose("영웅 판매", "SELL HEROES");
+    }
+
+    static void SetButtonLabel(Button button, string value)
+    {
+        if (button == null) return;
+        TextMeshProUGUI text = button.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (text != null) text.text = value;
+    }
+
+    void OnRectTransformDimensionsChange()
+    {
+        RectTransform content = m_closeButton != null ? m_closeButton.transform.parent as RectTransform : null;
+        MobileSafeAreaLayout.ApplyBottom(content);
+    }
 
     void BindButtons(Button[] buttons, System.Action<int> clicked)
     {

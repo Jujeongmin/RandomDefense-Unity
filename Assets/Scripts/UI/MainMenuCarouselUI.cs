@@ -12,11 +12,14 @@ public interface IStorePurchaseService
 
 public interface IRewardedAdService
 {
+    bool IsReady { get; }
     void Show(Action<bool> completed);
 }
 
 public sealed class MockCommerceService : IStorePurchaseService, IRewardedAdService
 {
+    public bool IsReady => true;
+
     public void Purchase(string productId, Action<bool> completed)
     {
 #if UNITY_EDITOR
@@ -87,6 +90,7 @@ public class MainMenuCarouselUI : MonoBehaviour, IBeginDragHandler, IDragHandler
     float m_uiRefreshTimer;
     IStorePurchaseService m_store;
     IRewardedAdService m_ads;
+    bool? m_lastEnglish;
 
     public void Configure(
         RectTransform viewport,
@@ -111,7 +115,11 @@ public class MainMenuCarouselUI : MonoBehaviour, IBeginDragHandler, IDragHandler
     void Start()
     {
         m_store = new MockCommerceService();
+#if UNITY_EDITOR
         m_ads = new MockCommerceService();
+#else
+        m_ads = AdMobRewardedAdService.Shared;
+#endif
         m_pageWidth = m_viewport != null ? m_viewport.rect.width : 720f;
         if (m_pageWidth <= 1f) m_pageWidth = 720f;
 
@@ -158,7 +166,7 @@ public class MainMenuCarouselUI : MonoBehaviour, IBeginDragHandler, IDragHandler
     void TryRewardAd()
     {
         PlayerProgressManager progress = GManager.Instance != null ? GManager.Instance.IsProgress : null;
-        if (progress == null || !progress.CanClaimRewardAd) return;
+        if (progress == null || progress.AdsRemoved || !progress.CanClaimRewardAd || !m_ads.IsReady) return;
         m_ads.Show(success =>
         {
             if (!success)
@@ -188,6 +196,11 @@ public class MainMenuCarouselUI : MonoBehaviour, IBeginDragHandler, IDragHandler
     void RefreshAll()
     {
         if (GManager.Instance == null || GManager.Instance.IsProgress == null) return;
+        if (m_lastEnglish != GameLanguage.IsEnglish)
+        {
+            m_lastEnglish = GameLanguage.IsEnglish;
+            ApplyStaticLanguage();
+        }
         PlayerProgressManager progress = GManager.Instance.IsProgress;
         if (m_crystalText != null && m_lastCrystalCount != progress.Crystals)
         {
@@ -203,38 +216,89 @@ public class MainMenuCarouselUI : MonoBehaviour, IBeginDragHandler, IDragHandler
                 if (row == null || row.info == null || row.button == null) continue;
                 int level = research.GetLevel(row.type);
                 int max = research.GetMaxLevel(row.type);
-                string cost = level >= max ? "최대 레벨" : $"비용 {research.GetCost(row.type):N0}";
-                row.info.text = $"{GetResearchName(row.type)}   Lv.{level}/{max}\n<size=70%>현재 증가: {GetCurrentResearchEffect(row.type, level)}   |   {cost}</size>";
+                string cost = level >= max
+                    ? GameLanguage.Choose("최대 레벨", "MAX LEVEL")
+                    : GameLanguage.Choose($"비용 {research.GetCost(row.type):N0}", $"COST {research.GetCost(row.type):N0}");
+                row.info.text = $"{GetResearchName(row.type)}   Lv.{level}/{max}\n<size=70%>{GameLanguage.Choose("현재 증가", "CURRENT")}: {GetCurrentResearchEffect(row.type, level)}   |   {cost}</size>";
                 row.button.interactable = level < max && progress.Crystals >= research.GetCost(row.type);
             }
         }
 
         if (m_rewardAdButton != null && m_rewardAdText != null)
         {
+            bool adsAllowed = !progress.AdsRemoved;
+            m_rewardAdButton.gameObject.SetActive(adsAllowed);
+            if (!adsAllowed) return;
+
             TimeSpan remaining = progress.NextRewardAdUtc - DateTime.UtcNow;
             bool ready = remaining <= TimeSpan.Zero;
-            m_rewardAdButton.interactable = ready;
-            m_rewardAdText.text = ready ? "광고 시청  +50 크리스탈" : $"다음 보상  {remaining.Minutes:00}:{remaining.Seconds:00}";
+            m_rewardAdButton.interactable = ready && m_ads != null && m_ads.IsReady;
+            m_rewardAdText.text = ready
+                ? GameLanguage.Choose("광고 시청  +50 크리스탈", "WATCH AD  +50 CRYSTALS")
+                : GameLanguage.Choose($"다음 보상  {remaining.Minutes:00}:{remaining.Seconds:00}", $"NEXT REWARD  {remaining.Minutes:00}:{remaining.Seconds:00}");
         }
+    }
+
+    void ApplyStaticLanguage()
+    {
+        if (m_content != null && m_content.childCount >= 3)
+        {
+            SetFirstText(m_content.GetChild(ShopPage), GameLanguage.Choose("상점", "SHOP"));
+            SetFirstText(m_content.GetChild(ResearchPage), GameLanguage.Choose("연구소", "LABORATORY"));
+
+            TextMeshProUGUI[] researchTexts = m_content.GetChild(ResearchPage).GetComponentsInChildren<TextMeshProUGUI>(true);
+            if (researchTexts.Length > 0)
+                researchTexts[researchTexts.Length - 1].text = GameLanguage.Choose(
+                    "왼쪽으로 밀어 메인 화면으로 이동", "SWIPE LEFT TO RETURN TO MAIN");
+        }
+
+        if (m_products != null)
+            foreach (ProductBinding product in m_products)
+                if (product?.button != null) SetButtonText(product.button, GetProductLabel(product));
+
+        if (m_shopStatus != null)
+            m_shopStatus.text = GameLanguage.Choose(
+                "오른쪽으로 밀어 메인 화면으로 이동", "SWIPE RIGHT TO RETURN TO MAIN");
+    }
+
+    static void SetFirstText(Transform root, string value)
+    {
+        TextMeshProUGUI text = root != null ? root.GetComponentInChildren<TextMeshProUGUI>(true) : null;
+        if (text != null) text.text = value;
+    }
+
+    static void SetButtonText(Button button, string value)
+    {
+        TextMeshProUGUI text = button.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (text != null) text.text = value;
+    }
+
+    static string GetProductLabel(ProductBinding product)
+    {
+        if (product.removesAds)
+            return GameLanguage.Choose("광고 제거 + 3배속\n<size=70%>영구 적용</size>", "REMOVE ADS + 3X SPEED\n<size=70%>PERMANENT</size>");
+        return GameLanguage.Choose(
+            $"크리스탈 {product.crystals:N0}개\n<size=70%>크리스탈 패키지</size>",
+            $"{product.crystals:N0} CRYSTALS\n<size=70%>CRYSTAL PACK</size>");
     }
 
     static string GetResearchName(ResearchType type) => type switch
     {
-        ResearchType.Attack => "공격력 연구",
-        ResearchType.StartGold => "시작 골드 연구",
-        ResearchType.GoldGain => "골드 획득 연구",
-        ResearchType.RareSummon => "희귀 소환 연구",
-        ResearchType.BossDamage => "보스 피해 연구",
+        ResearchType.Attack => GameLanguage.Choose("공격력 연구", "ATTACK RESEARCH"),
+        ResearchType.StartGold => GameLanguage.Choose("시작 골드 연구", "START GOLD RESEARCH"),
+        ResearchType.GoldGain => GameLanguage.Choose("골드 획득 연구", "GOLD GAIN RESEARCH"),
+        ResearchType.RareSummon => GameLanguage.Choose("희귀 소환 연구", "RARE SUMMON RESEARCH"),
+        ResearchType.BossDamage => GameLanguage.Choose("보스 피해 연구", "BOSS DAMAGE RESEARCH"),
         _ => type.ToString()
     };
 
     static string GetCurrentResearchEffect(ResearchType type, int level) => type switch
     {
-        ResearchType.Attack => $"공격력 +{level * 2}%",
-        ResearchType.StartGold => $"시작 골드 +{level * 5}",
-        ResearchType.GoldGain => $"처치 골드 +{level * 2}%",
-        ResearchType.RareSummon => $"전설 이상 확률 +{level * 0.1f:0.0}%p",
-        ResearchType.BossDamage => $"보스 피해 +{level * 2}%",
+        ResearchType.Attack => GameLanguage.Choose($"공격력 +{level * 2}%", $"ATTACK +{level * 2}%"),
+        ResearchType.StartGold => GameLanguage.Choose($"시작 골드 +{level * 5}", $"START GOLD +{level * 5}"),
+        ResearchType.GoldGain => GameLanguage.Choose($"처치 골드 +{level * 2}%", $"KILL GOLD +{level * 2}%"),
+        ResearchType.RareSummon => GameLanguage.Choose($"전설 이상 확률 +{level * 0.1f:0.0}%p", $"LEGENDARY+ +{level * 0.1f:0.0}%p"),
+        ResearchType.BossDamage => GameLanguage.Choose($"보스 피해 +{level * 2}%", $"BOSS DAMAGE +{level * 2}%"),
         _ => string.Empty
     };
 

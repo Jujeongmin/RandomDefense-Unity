@@ -1,8 +1,10 @@
 using UnityEngine;
 using UnityEngine.U2D.Animation;
+using TMPro;
 
 public class UnitSpawner : MonoBehaviour
 {
+    [SerializeField] TextMeshProUGUI m_spawnButtonText;
     int m_spawnCount = 0;
 
     [Header("Hold Spawn Settings")]
@@ -14,6 +16,7 @@ public class UnitSpawner : MonoBehaviour
     private void Start()
     {
         if (GManager.Instance != null) GManager.Instance.RegisterUnitSpawner(this);
+        if (m_spawnButtonText != null) m_spawnButtonText.text = GameLanguage.Choose("소환", "Spawn");
     }
 
     private void OnDestroy()
@@ -178,6 +181,7 @@ public class UnitSpawner : MonoBehaviour
         {
             GManager.Instance.ShowSpawnText(percent, spawnType, rarity, spawnPos);
         }
+        GameAudioManager.Play(GameAudioManager.Sfx.Summon);
     }
 
     public void BeginSpawnHold()

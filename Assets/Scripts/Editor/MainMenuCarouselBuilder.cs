@@ -213,8 +213,8 @@ public static class MainMenuCarouselBuilder
         serializedManager.FindProperty("m_highWaveText").objectReferenceValue = highWave;
         serializedManager.FindProperty("m_settingPanel").objectReferenceValue = overlay.gameObject;
         serializedManager.FindProperty("m_settingsTitleText").objectReferenceValue = title;
-        serializedManager.FindProperty("m_soundButton").objectReferenceValue = sound;
-        serializedManager.FindProperty("m_soundButtonText").objectReferenceValue = soundText;
+        serializedManager.FindProperty("m_bgmButton").objectReferenceValue = sound;
+        serializedManager.FindProperty("m_bgmButtonText").objectReferenceValue = soundText;
         serializedManager.FindProperty("m_koreanButton").objectReferenceValue = korean;
         serializedManager.FindProperty("m_englishButton").objectReferenceValue = english;
         serializedManager.FindProperty("m_resetButton").objectReferenceValue = reset;
@@ -297,8 +297,8 @@ public static class MainMenuCarouselBuilder
         TextMeshProUGUI soundText = sound.GetComponentInChildren<TextMeshProUGUI>(true);
 
         SerializedObject serializedPanel = new SerializedObject(settingPanel);
-        serializedPanel.FindProperty("m_soundButton").objectReferenceValue = sound;
-        serializedPanel.FindProperty("m_soundButtonText").objectReferenceValue = soundText;
+        serializedPanel.FindProperty("m_bgmButton").objectReferenceValue = sound;
+        serializedPanel.FindProperty("m_bgmButtonText").objectReferenceValue = soundText;
         serializedPanel.ApplyModifiedPropertiesWithoutUndo();
 
         EditorUtility.SetDirty(settingPanel);

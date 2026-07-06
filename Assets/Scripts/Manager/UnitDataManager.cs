@@ -37,4 +37,21 @@ public class UnitDataManager : MonoBehaviour
         }
         return list;
     }
+
+    public EntityData GetRandomForSpecies(EntityType.TYPE entityType, SpeciesType.TYPE species)
+    {
+        if (m_entityDataList == null) return null;
+
+        EntityData selected = null;
+        int matchCount = 0;
+        foreach (EntityData data in m_entityDataList)
+        {
+            if (data == null || data.IsEntityType != entityType || data.IsSpeciesType != species) continue;
+
+            matchCount++;
+            // Reservoir sampling avoids allocating a temporary list every wave.
+            if (Random.Range(0, matchCount) == 0) selected = data;
+        }
+        return selected;
+    }
 }

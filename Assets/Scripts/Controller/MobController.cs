@@ -17,6 +17,12 @@ public class MobController : ParentsController
         RestartMovement();
     }
 
+    public override void Setting(EntityData data)
+    {
+        base.Setting(data);
+        RestartMovement();
+    }
+
     void OnEnable()
     {
         // apply desired world scale from MobManager
