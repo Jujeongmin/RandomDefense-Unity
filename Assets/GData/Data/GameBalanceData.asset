@@ -18,12 +18,17 @@ MonoBehaviour:
   m_bossKillGold: 100
   m_upgradeBaseCost: 20
   m_upgradeCostStep: 20
-  m_crystalPerReachedWave: 2
+  m_summonCostStepEvery: 10
+  m_summonCostIncrement: 1
+  m_crystalPerReachedWave: 3
   m_researchBaseCost: 50
-  m_rareSummonBonusPerLevel: 0.1
+  m_rareSummonBonusPerLevel: 1.5
   m_attackInterval: 1
   m_maxWave: 50
   m_mobsPerWave: 40
   m_mobSpawnInterval: 1
   m_waveInterval: 5
   m_bossTimeLimit: 120
+  m_mobHpGrowthPerWave: 0.45
+  m_bossHpBaseMultiplier: 40
+  m_bossHpGrowthPerWave: 12

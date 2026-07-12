@@ -10,6 +10,7 @@ public class MobController : ParentsController
     [SerializeField] float m_speed = 1.2f;
 
     Coroutine m_moveRoutine;
+    MobHealthBar m_healthBar;
 
     public override void Setting(EntityType.TYPE argEntityType, int argEntityIndex)
     {
@@ -28,6 +29,9 @@ public class MobController : ParentsController
         // apply desired world scale from MobManager
         float scale = (GManager.Instance != null && GManager.Instance.IsMob != null) ? GManager.Instance.IsMob.MobWorldScale : 0.3f;
         SetWorldScale(Vector3.one * scale);
+
+        // 체력바는 한 번만 생성 (풀에서 재사용될 때 유지됨)
+        if (m_healthBar == null) m_healthBar = MobHealthBar.Attach(this);
 
         // safe-start if Setting wasn't called
         if (m_moveRoutine == null) RestartMovement();

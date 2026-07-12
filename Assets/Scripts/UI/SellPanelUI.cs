@@ -22,6 +22,9 @@ public class SellPanelUI : MonoBehaviour
     [SerializeField] Button[] m_amountButtons;
     [SerializeField] Button m_closeButton;
 
+    [Header("Auto-Sell Toggle (optional — 미할당 시 런타임 자동 생성)")]
+    [SerializeField] Button m_autoSellToggle;
+
     void Awake()
     {
         for (int i = 0; i < Rarities.Length; i++)
@@ -34,12 +37,87 @@ public class SellPanelUI : MonoBehaviour
         BindButtons(m_classButtons, SetClass);
         BindButtons(m_amountButtons, SetAmount);
         m_closeButton?.onClick.AddListener(() => gameObject.SetActive(false));
+
+        if (m_autoSellToggle == null)
+        {
+            // 씬에 배치한 토글을 이름으로 먼저 찾고, 정말 없을 때만 생성 (배치한 위치를 건드리지 않음)
+            RectTransform content = m_closeButton != null ? m_closeButton.transform.parent as RectTransform : transform as RectTransform;
+            Transform existing = content != null ? content.Find("AutoSellToggle") : null;
+            m_autoSellToggle = existing != null ? existing.GetComponent<Button>() : CreateAutoSellButton();
+        }
+        m_autoSellToggle?.onClick.AddListener(ToggleAutoSell);
     }
 
     void OnEnable()
     {
         ApplyLanguage();
         Refresh();
+        UpdateAutoSellVisual();
+    }
+
+    void ToggleAutoSell()
+    {
+        if (GManager.Instance == null) return;
+        GManager.Instance.SetAutoSellLowGrade(!GManager.Instance.AutoSellLowGradeEnabled);
+        UpdateAutoSellVisual();
+        Refresh();
+    }
+
+    void UpdateAutoSellVisual()
+    {
+        if (m_autoSellToggle == null) return;
+        bool on = GManager.Instance != null && GManager.Instance.AutoSellLowGradeEnabled;
+
+        TextMeshProUGUI label = m_autoSellToggle.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (label != null)
+        {
+            string state = on ? "ON" : "OFF";
+            label.text = GameLanguage.Choose($"고급이하 자동판매: {state}", $"AUTO-SELL ≤RARE: {state}");
+        }
+        if (m_autoSellToggle.targetGraphic != null)
+            m_autoSellToggle.targetGraphic.color = on
+                ? new Color(1f, 0.65f, 0.12f, 1f)
+                : new Color(0.22f, 0.24f, 0.3f, 1f);
+    }
+
+    Button CreateAutoSellButton()
+    {
+        RectTransform content = m_closeButton != null ? m_closeButton.transform.parent as RectTransform : transform as RectTransform;
+        if (content == null) return null;
+
+        var go = new GameObject("AutoSellToggle", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+        var rt = go.GetComponent<RectTransform>();
+        rt.SetParent(content, false);
+        // 판매 패널 자식들은 중앙 앵커 좌표계를 사용 (HintText/CloseButton과 같은 행의 왼쪽)
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = new Vector2(-255f, 340f);
+        rt.sizeDelta = new Vector2(180f, 40f);
+
+        var img = go.GetComponent<Image>();
+        img.color = new Color(0.22f, 0.24f, 0.3f, 1f);
+
+        var button = go.GetComponent<Button>();
+        button.targetGraphic = img;
+
+        var labelGo = new GameObject("Label", typeof(RectTransform));
+        var labelRt = labelGo.GetComponent<RectTransform>();
+        labelRt.SetParent(rt, false);
+        labelRt.anchorMin = Vector2.zero;
+        labelRt.anchorMax = Vector2.one;
+        labelRt.offsetMin = Vector2.zero;
+        labelRt.offsetMax = Vector2.zero;
+
+        var tmp = labelGo.AddComponent<TextMeshProUGUI>();
+        GameFont.Apply(tmp);
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.enableAutoSizing = true;
+        tmp.fontSizeMin = 10f;
+        tmp.fontSizeMax = 22f;
+        tmp.text = "AUTO-SELL";
+
+        return button;
     }
 
     void ApplyLanguage()
@@ -88,12 +166,6 @@ public class SellPanelUI : MonoBehaviour
         if (button == null) return;
         TextMeshProUGUI text = button.GetComponentInChildren<TextMeshProUGUI>(true);
         if (text != null) text.text = value;
-    }
-
-    void OnRectTransformDimensionsChange()
-    {
-        RectTransform content = m_closeButton != null ? m_closeButton.transform.parent as RectTransform : null;
-        MobileSafeAreaLayout.ApplyBottom(content);
     }
 
     void BindButtons(Button[] buttons, System.Action<int> clicked)

@@ -97,7 +97,9 @@ public class MobManager : MonoBehaviour
         }
     }
 
-    public void ResetForRestart()
+    public void ResetForRestart() => StartWaveLoopAt(1);
+
+    void StartWaveLoopAt(int wave)
     {
         if (m_waveCoroutine != null)
         {
@@ -107,13 +109,13 @@ public class MobManager : MonoBehaviour
 
         m_spawnCount = 0;
         m_spawnedInWave = 0;
-        m_currentWave = 1;
+        m_currentWave = wave;
         m_gameOver = false;
 
         UpdateMobCountText();
         UpdateWaveText();
 
-        if (!m_gameOver && m_waveCoroutine == null) m_waveCoroutine = StartCoroutine(WaveLoop());
+        m_waveCoroutine = StartCoroutine(WaveLoop());
     }
 
     private Coroutine m_waveCoroutine = null;
@@ -216,12 +218,8 @@ public class MobManager : MonoBehaviour
                 {
                     m_waveSpeciesText.text = GameLanguage.Choose("보스 웨이브", "BOSS WAVE");
                 }
-                if (m_waveMobImage != null)
-                {
-                    m_waveMobImage.gameObject.SetActive(false);
-                }
 
-                SpawnBoss();
+                SpawnBoss(); // 보스 아이콘은 SpawnBoss 안에서 m_waveMobImage에 설정됨
 
                 float timer = bossTimeLimit;
                 while (timer > 0 && m_activeBoss != null)
@@ -250,7 +248,8 @@ public class MobManager : MonoBehaviour
 
                 Debug.Log($"Boss Wave {m_currentWave} cleared! Waiting for next wave...");
 
-                if (m_currentWave >= maxWave)
+                // 무한 모드에서는 클리어 없이 계속 진행합니다.
+                if (!GameModeSettings.IsEndless && m_currentWave >= maxWave)
                 {
                     Debug.Log("Final wave boss defeated! Game Clear.");
                     if (GManager.Instance != null)
@@ -297,8 +296,10 @@ public class MobManager : MonoBehaviour
         {
             mobCtrl.Setting(data);
 
-            int baseHp = data.IsHp;
-            int scaledHp = baseHp + (m_currentWave - 1) * (baseHp / 5);
+            GameBalanceData balance = GManager.Instance != null ? GManager.Instance.Balance : null;
+            int scaledHp = balance != null
+                ? balance.GetMobHp(data.IsHp, m_currentWave)
+                : data.IsHp + (m_currentWave - 1) * (data.IsHp / 5);
             mobCtrl.SetMaxHp(scaledHp);
         }
 
@@ -431,11 +432,20 @@ public class MobManager : MonoBehaviour
             SetCurrentSpecies(data.IsSpeciesType);
             mobCtrl.Setting(data);
 
-            int baseHp = data.IsHp;
-            int scaledHp = baseHp * 15 + (m_currentWave - 1) * (baseHp * 3);
+            GameBalanceData balance = GManager.Instance != null ? GManager.Instance.Balance : null;
+            int scaledHp = balance != null
+                ? balance.GetBossHp(data.IsHp, m_currentWave)
+                : data.IsHp * 15 + (m_currentWave - 1) * (data.IsHp * 3);
             mobCtrl.SetMaxHp(scaledHp);
 
             mobCtrl.SetWorldScale(Vector3.one * (m_mobWorldScale * 2f));
+
+            // 보스 아이콘을 웨이브 정보 이미지에 표시
+            if (m_waveMobImage != null)
+            {
+                m_waveMobImage.sprite = data.IsIcon;
+                m_waveMobImage.gameObject.SetActive(data.IsIcon != null);
+            }
         }
 
         m_activeBoss = mobCtrl;

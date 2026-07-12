@@ -303,11 +303,18 @@ public class Region : MonoBehaviour
         OccupiedType = null;
     }
 
+    bool m_swapping = false;
+
+    /// <summary>스왑 애니메이션 진행 중 여부.</summary>
+    public bool IsSwapping => m_swapping;
+
     // 지역 간 내용(유닛) 전체를 교환합니다. 월드 스케일/회전은 가능한 보존합니다.
     public void SwapContentsWith(Region other)
     {
         // perform animated swap so units walk to their new regions
         if (other == null) return;
+        // 이미 스왑 중이면 중복 실행 금지 (상태 꼬임 방지)
+        if (m_swapping || other.m_swapping) return;
         // start coroutine to animate swap
         StartCoroutine(SwapContentsCoroutine(other));
     }
@@ -315,13 +322,30 @@ public class Region : MonoBehaviour
     System.Collections.IEnumerator SwapContentsCoroutine(Region other)
     {
         if (other == null) yield break;
+        m_swapping = true;
+        other.m_swapping = true;
 
         var myUnits = new List<GameObject>(m_units);
         var otherUnits = new List<GameObject>(other.m_units);
 
-        // Clear both lists to prepare for reassigning after animation
+        // ── 논리 상태(소속 리스트/타입/부모)를 애니메이션 시작 시점에 즉시 교환 ──
+        // 이렇게 하면 애니메이션 도중 소환/판매/트리거가 일어나도 항상 올바른 지역 기준으로 동작한다.
         m_units.Clear();
         other.m_units.Clear();
+        m_units.AddRange(otherUnits);
+        other.m_units.AddRange(myUnits);
+
+        var swappedType = this.OccupiedType;
+        this.OccupiedType = other.OccupiedType;
+        other.OccupiedType = swappedType;
+
+        foreach (var u in myUnits)
+            if (u != null) u.transform.SetParent(other.transform, true);
+        foreach (var u in otherUnits)
+            if (u != null) u.transform.SetParent(this.transform, true);
+
+        if (GManager.Instance != null && GManager.Instance.IsRegion != null)
+            GManager.Instance.IsRegion.RecalculateAndNotify();
 
         float duration = 0.6f;
 
@@ -396,19 +420,17 @@ public class Region : MonoBehaviour
             yield return null;
         }
 
-        // finalize positions and reparent, apply rotation/scale, set idle
+        // 마무리: 위치/회전/스케일 정리 및 Idle 전환 (소속 리스트/타입은 시작 시 이미 교환됨)
         for (int i = 0; i < myUnits.Count; i++)
         {
             var u = myUnits[i];
             if (u == null) continue;
             u.transform.position = myTargets[i];
-            u.transform.SetParent(other.transform, true);
             u.transform.rotation = Quaternion.Euler(0f, 0f, other.m_unitRotationDeg);
             var pc = u.GetComponent<ParentsController>();
             if (pc != null) pc.SetWorldScale(Vector3.one * other.m_desiredWorldScale);
             else u.transform.localScale = ComputeLocalScaleForDesiredWorld(Vector3.one * other.m_desiredWorldScale, other.transform);
             if (pc != null) pc.IsMoveType = MoveType.TYPE.Idle;
-            other.m_units.Add(u);
         }
 
         for (int i = 0; i < otherUnits.Count; i++)
@@ -416,20 +438,15 @@ public class Region : MonoBehaviour
             var u = otherUnits[i];
             if (u == null) continue;
             u.transform.position = otherTargets[i];
-            u.transform.SetParent(this.transform, true);
             u.transform.rotation = Quaternion.Euler(0f, 0f, m_unitRotationDeg);
             var pc = u.GetComponent<ParentsController>();
             if (pc != null) pc.SetWorldScale(Vector3.one * m_desiredWorldScale);
             else u.transform.localScale = ComputeLocalScaleForDesiredWorld(Vector3.one * m_desiredWorldScale, this.transform);
             if (pc != null) pc.IsMoveType = MoveType.TYPE.Idle;
-            m_units.Add(u);
         }
 
-        // swap occupied types
-        var tmp = this.OccupiedType;
-        this.OccupiedType = other.OccupiedType;
-        other.OccupiedType = tmp;
-
+        m_swapping = false;
+        other.m_swapping = false;
         yield break;
     }
 

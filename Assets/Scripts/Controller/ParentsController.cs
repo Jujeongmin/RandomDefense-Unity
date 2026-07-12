@@ -73,7 +73,8 @@ public class ParentsController : MonoBehaviour
         m_lastLabel = string.Empty;
         m_aniTimer = 0f;
         m_attackTimer = 0f;
-        
+        m_targetSearchTimer = 0f;
+
         if (m_atkEffectObj != null)
         {
             m_atkEffectObj.SetActive(false);
@@ -166,12 +167,35 @@ public class ParentsController : MonoBehaviour
 
         if (IsMoveType == MoveType.TYPE.Walk) return;
 
-        var mobMgr = GManager.Instance != null ? GManager.Instance.IsMob : null;
-        if (mobMgr == null) return;
-
         float searchRange = IsRarity >= RarityType.TYPE.Legendary
             ? float.PositiveInfinity
             : IsData.IsSearchLength;
+
+        // ── 성능 최적화 1: 현재 타겟이 살아있고 사거리 안이면 유지 (전체 몹 스캔 생략) ──
+        if (m_targetMob != null && m_targetMob.isActiveAndEnabled)
+        {
+            float sqrDistance = (transform.position - m_targetMob.transform.position).sqrMagnitude;
+            if (float.IsPositiveInfinity(searchRange) || sqrDistance <= searchRange * searchRange)
+            {
+                IsMoveType = MoveType.TYPE.Attack;
+                IsDirType = GetDirFromVector(m_targetMob.transform.position - transform.position);
+                return;
+            }
+        }
+
+        // ── 성능 최적화 2: 재탐색은 유닛별 시차를 두고 간격 실행 (프레임당 탐색 수 분산) ──
+        m_targetSearchTimer -= Time.deltaTime;
+        if (m_targetSearchTimer > 0f)
+        {
+            m_targetMob = null;
+            if (IsMoveType == MoveType.TYPE.Attack) IsMoveType = MoveType.TYPE.Idle;
+            return;
+        }
+        m_targetSearchTimer = Random.Range(0.1f, 0.2f);
+
+        var mobMgr = GManager.Instance != null ? GManager.Instance.IsMob : null;
+        if (mobMgr == null) return;
+
         MobController closestMob = CombatTargetSelector.FindClosest(
             transform.position, searchRange, mobMgr.ActiveMobs);
 
@@ -203,6 +227,13 @@ public class ParentsController : MonoBehaviour
 
         if (IsData != null)
         {
+            switch (IsData.IsEntityType)
+            {
+                case EntityType.TYPE.Warrior: GameAudioManager.Play(GameAudioManager.Sfx.AttackWarrior); break;
+                case EntityType.TYPE.Archer: GameAudioManager.Play(GameAudioManager.Sfx.AttackArcher); break;
+                case EntityType.TYPE.Wizard: GameAudioManager.Play(GameAudioManager.Sfx.AttackWizard); break;
+            }
+
             if (m_atkEffectObj == null)
             {
                 m_atkEffectObj = IsData.CreateEffect(IsAniIndex, transform);
@@ -298,6 +329,9 @@ public class ParentsController : MonoBehaviour
         m_nowHp = hp;
     }
 
+    /// <summary>현재 체력 비율 (0~1). 체력바 표시용.</summary>
+    public float HpRatio => m_maxHp > 0 ? Mathf.Clamp01((float)m_nowHp / m_maxHp) : 0f;
+
     void UpdateAnimationResolver()
     {
         if (IsSpResolver == null) return;
@@ -346,6 +380,7 @@ public class ParentsController : MonoBehaviour
     string m_lastLabel = string.Empty;
     float m_aniTimer = 0f;
     float m_attackTimer = 0f;
+    float m_targetSearchTimer = 0f;
     GameObject m_atkEffectObj = null;
 
     /// <summary>

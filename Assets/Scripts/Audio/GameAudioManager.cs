@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 public sealed class GameAudioManager : MonoBehaviour
 {
-    public enum Sfx { Click, Confirm, Error, Summon, Sell, Upgrade, MobDeath, BossDeath, Victory, Defeat }
+    public enum Sfx { Click, Confirm, Error, Summon, RareSummon, Sell, Upgrade, MobDeath, BossDeath, Victory, Defeat, AttackWarrior, AttackArcher, AttackWizard }
 
     static GameAudioManager s_instance;
     GameAudioLibrary m_library;
@@ -14,6 +14,8 @@ public sealed class GameAudioManager : MonoBehaviour
     AudioClip m_currentBgm;
     Coroutine m_bgmFade;
     float m_lastMobDeathTime;
+    float m_lastSellTime;
+    float m_lastAttackTime;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void Create()
@@ -55,7 +57,7 @@ public sealed class GameAudioManager : MonoBehaviour
     IEnumerator BindButtonSounds()
     {
         yield return null;
-        foreach (Button button in FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (Button button in FindObjectsByType<Button>(FindObjectsInactive.Include))
         {
             button.onClick.RemoveListener(PlayButtonClick);
             button.onClick.AddListener(PlayButtonClick);
@@ -118,8 +120,23 @@ public sealed class GameAudioManager : MonoBehaviour
         if (s_instance == null || s_instance.m_library == null || !GameAudioSettings.SfxEnabled) return;
         if (type == Sfx.MobDeath && Time.unscaledTime - s_instance.m_lastMobDeathTime < 0.08f) return;
         if (type == Sfx.MobDeath) s_instance.m_lastMobDeathTime = Time.unscaledTime;
+        // 자동판매 등으로 판매음이 연속 재생될 때 겹쳐 커지는 것을 방지
+        if (type == Sfx.Sell && Time.unscaledTime - s_instance.m_lastSellTime < 0.1f) return;
+        if (type == Sfx.Sell) s_instance.m_lastSellTime = Time.unscaledTime;
+        // 유닛 다수가 동시에 공격할 때 공격음이 겹쳐 시끄러워지는 것을 방지
+        bool isAttack = type is Sfx.AttackWarrior or Sfx.AttackArcher or Sfx.AttackWizard;
+        if (isAttack && Time.unscaledTime - s_instance.m_lastAttackTime < 0.03f) return;
+        if (isAttack) s_instance.m_lastAttackTime = Time.unscaledTime;
         AudioClip clip = s_instance.GetClip(type);
-        if (clip != null) s_instance.m_sfx.PlayOneShot(clip);
+        float volumeScale = type switch
+        {
+            Sfx.MobDeath or Sfx.BossDeath => 0.4f,
+            Sfx.Sell => 0.7f,
+            Sfx.AttackWarrior or Sfx.AttackArcher or Sfx.AttackWizard => 0.2f,
+            Sfx.Victory or Sfx.Defeat => 0.5f,
+            _ => 1f
+        };
+        if (clip != null) s_instance.m_sfx.PlayOneShot(clip, volumeScale);
     }
 
     AudioClip GetClip(Sfx type) => type switch
@@ -128,10 +145,14 @@ public sealed class GameAudioManager : MonoBehaviour
         Sfx.Confirm => m_library.confirm,
         Sfx.Error => m_library.error,
         Sfx.Summon => m_library.summon,
+        Sfx.RareSummon => m_library.rareSummon,
         Sfx.Sell => m_library.sell,
         Sfx.Upgrade => m_library.upgrade,
         Sfx.MobDeath => m_library.mobDeath,
         Sfx.BossDeath => m_library.bossDeath,
+        Sfx.AttackWarrior => m_library.attackWarrior,
+        Sfx.AttackArcher => m_library.attackArcher,
+        Sfx.AttackWizard => m_library.attackWizard,
         Sfx.Victory => m_library.victory,
         Sfx.Defeat => m_library.defeat,
         _ => null

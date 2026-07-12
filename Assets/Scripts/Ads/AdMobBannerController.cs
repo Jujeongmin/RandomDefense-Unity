@@ -5,15 +5,20 @@ using UnityEngine.SceneManagement;
 public sealed class AdMobBannerController : MonoBehaviour
 {
     const string MainScene = "MainScene";
-    const string GameScene = "GameScene";
 
 #if UNITY_ANDROID
-    const string BannerId = "ca-app-pub-4673017826771391/8693910058";
+    const string RealBannerId = "ca-app-pub-4673017826771391/8693910058";
+    const string TestBannerId = "ca-app-pub-3940256099942544/6300978111"; // Google 공식 테스트 배너
 #elif UNITY_IOS
-    const string BannerId = "ca-app-pub-3940256099942544/2435281174";
+    const string RealBannerId = "ca-app-pub-3940256099942544/2435281174";
+    const string TestBannerId = "ca-app-pub-3940256099942544/2934735716";
 #else
-    const string BannerId = "unused";
+    const string RealBannerId = "unused";
+    const string TestBannerId = "unused";
 #endif
+
+    // 개발 빌드(Development Build 체크)에선 테스트 광고, 정식 빌드에선 실 광고
+    static string BannerId => Debug.isDebugBuild ? TestBannerId : RealBannerId;
 
     static AdMobBannerController s_instance;
     BannerView m_banner;
@@ -67,7 +72,8 @@ public sealed class AdMobBannerController : MonoBehaviour
     void RefreshForScene(Scene scene)
     {
 #if UNITY_ANDROID || UNITY_IOS
-        bool supportedScene = scene.name == MainScene || scene.name == GameScene;
+        // 배너는 메인메뉴에서만 표시 (게임 중에는 하단 UI를 가리므로 끔)
+        bool supportedScene = scene.name == MainScene;
         bool adsRemoved = GManager.Instance != null &&
                           GManager.Instance.IsProgress != null &&
                           GManager.Instance.IsProgress.AdsRemoved;

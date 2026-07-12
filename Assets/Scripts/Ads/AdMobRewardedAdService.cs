@@ -6,12 +6,18 @@ using UnityEngine;
 public sealed class AdMobRewardedAdService : IRewardedAdService
 {
 #if UNITY_ANDROID
-    const string RewardedId = "ca-app-pub-4673017826771391/3563918015";
+    const string RealRewardedId = "ca-app-pub-4673017826771391/3563918015";
+    const string TestRewardedId = "ca-app-pub-3940256099942544/5224354917"; // Google 공식 테스트 리워드
 #elif UNITY_IOS
-    const string RewardedId = "ca-app-pub-3940256099942544/1712485313";
+    const string RealRewardedId = "ca-app-pub-3940256099942544/1712485313";
+    const string TestRewardedId = "ca-app-pub-3940256099942544/1712485313";
 #else
-    const string RewardedId = "unused";
+    const string RealRewardedId = "unused";
+    const string TestRewardedId = "unused";
 #endif
+
+    // 개발 빌드에선 테스트 광고, 정식 빌드에선 실 광고
+    static string RewardedId => Debug.isDebugBuild ? TestRewardedId : RealRewardedId;
 
     public static AdMobRewardedAdService Shared { get; } = new AdMobRewardedAdService();
 

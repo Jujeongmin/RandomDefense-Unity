@@ -5,7 +5,9 @@ using TMPro;
 public class UnitSpawner : MonoBehaviour
 {
     [SerializeField] TextMeshProUGUI m_spawnButtonText;
+    [SerializeField] TextMeshProUGUI m_goldText;
     int m_spawnCount = 0;
+    int m_lastShownCost = -1;
 
     [Header("Hold Spawn Settings")]
     [SerializeField] float m_holdInitialDelay = 0.5f;
@@ -17,6 +19,18 @@ public class UnitSpawner : MonoBehaviour
     {
         if (GManager.Instance != null) GManager.Instance.RegisterUnitSpawner(this);
         if (m_spawnButtonText != null) m_spawnButtonText.text = GameLanguage.Choose("소환", "Spawn");
+
+        RefreshGoldText();
+    }
+
+    void RefreshGoldText()
+    {
+        if (m_goldText == null) return;
+        EconomyManager economy = GManager.Instance != null ? GManager.Instance.IsEconomy : null;
+        int cost = economy != null ? economy.SummonCost : 0;
+        if (cost == m_lastShownCost) return;
+        m_lastShownCost = cost;
+        m_goldText.text = cost.ToString();
     }
 
     private void OnDestroy()
@@ -27,6 +41,8 @@ public class UnitSpawner : MonoBehaviour
 
     void Update()
     {
+        RefreshGoldText(); // 비용이 바뀐 프레임에만 텍스트 갱신 (재시작 리셋 포함)
+
         if (!m_spawnHeld) return;
 
         m_holdTimer -= Time.deltaTime;
@@ -62,8 +78,10 @@ public class UnitSpawner : MonoBehaviour
 
         if (game.IsUnitData.Get(spawnType, (int)rarity) == null) return;
 
-        // 비용 지불
+        // 비용 지불 (소환할수록 비용 증가)
         if (!economy.TrySpend(economy.SummonCost)) return;
+        economy.RegisterSummon();
+        RefreshGoldText();
 
         ExecuteSpawn(spawnType, rarity, 0f);
     }
@@ -98,7 +116,7 @@ public class UnitSpawner : MonoBehaviour
         ExecuteSpawn(spawnType, forcedRarity, mockRar);
     }
 
-    private void ExecuteSpawn(EntityType.TYPE spawnType, RarityType.TYPE rarity, float rar)
+    private void ExecuteSpawn(EntityType.TYPE spawnType, RarityType.TYPE rarity, float rar, bool announce = true)
     {
         int index = (int)rarity;
 
@@ -162,26 +180,29 @@ public class UnitSpawner : MonoBehaviour
         character.CacheController();
         region.AddUnit(go);
 
+        if (!announce) return;
+
         // Show spawn message above the unit using pooled DamageText
         Vector3 spawnPos = go.transform.position + Vector3.up * 0.5f;
-        
-        // Use fixed display probabilities per rarity
-        float percent = rar; // default fallback
-        switch (rarity)
-        {
-            case RarityType.TYPE.Common: percent = 50f; break;
-            case RarityType.TYPE.Rare: percent = 33f; break;
-            case RarityType.TYPE.Elite: percent = 10f; break;
-            case RarityType.TYPE.Legendary: percent = 6.5f; break;
-            case RarityType.TYPE.Mythic: percent = 0.4f; break;
-            case RarityType.TYPE.Eternal: percent = 0.1f; break;
-        }
+
+        // 실제 RollRarity 확률과 동일하게 표시 (고급소환 연구 반영)
+        int rareResearchLevel = GManager.Instance != null && GManager.Instance.IsResearch != null
+            ? GManager.Instance.IsResearch.GetLevel(ResearchType.RareSummon)
+            : 0;
+        float percent = GManager.Instance != null && GManager.Instance.Balance != null
+            ? GManager.Instance.Balance.GetRarityPercent(rarity, rareResearchLevel)
+            : rar;
 
         if (GManager.Instance != null)
         {
             GManager.Instance.ShowSpawnText(percent, spawnType, rarity, spawnPos);
         }
-        GameAudioManager.Play(GameAudioManager.Sfx.Summon);
+        if (rarity >= RarityType.TYPE.Mythic)
+            GameAudioManager.Play(GameAudioManager.Sfx.RareSummon);
+
+        // '고급 이하 자동판매' 토글이 켜져 있으면 방금 소환한 저등급 유닛을 즉시 판매
+        if (GManager.Instance != null && GManager.Instance.AutoSellLowGradeEnabled && GManager.IsLowGrade(rarity))
+            GManager.Instance.SellUnits(spawnType, rarity, 1);
     }
 
     public void BeginSpawnHold()

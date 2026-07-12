@@ -56,8 +56,8 @@ public class ResearchManager : MonoBehaviour
         return true;
     }
 
-    public float AttackMultiplier => 1f + GetLevel(ResearchType.Attack) * 0.02f;
-    public float BossDamageMultiplier => 1f + GetLevel(ResearchType.BossDamage) * 0.02f;
-    public float GoldGainMultiplier => 1f + GetLevel(ResearchType.GoldGain) * 0.02f;
-    public int StartGoldBonus => GetLevel(ResearchType.StartGold) * 5;
+    public float AttackMultiplier => 1f + GetLevel(ResearchType.Attack) * 0.05f;       // 최대 +100%
+    public float BossDamageMultiplier => 1f + GetLevel(ResearchType.BossDamage) * 0.05f; // 최대 +100%
+    public float GoldGainMultiplier => 1f + GetLevel(ResearchType.GoldGain) * 0.03f;    // 최대 +60%
+    public int StartGoldBonus => GetLevel(ResearchType.StartGold) * 10;                 // 최대 +200
 }

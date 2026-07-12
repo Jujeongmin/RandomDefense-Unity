@@ -50,6 +50,13 @@ public sealed class MobileSafeAreaLayout : MonoBehaviour
         AnchorVerticalEdge(rect, Screen.safeArea.yMin / Screen.height, false);
     }
 
+    /// <summary>하단 안전영역에 붙이되 lift만큼 위로 띄웁니다.</summary>
+    public static void ApplyBottom(RectTransform rect, float lift)
+    {
+        ApplyBottom(rect);
+        if (rect != null) rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, lift);
+    }
+
     static void ApplyEdge(RectTransform rect, bool top)
     {
         if (rect == null || Screen.width <= 0 || Screen.height <= 0) return;

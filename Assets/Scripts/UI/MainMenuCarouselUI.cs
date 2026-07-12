@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -8,6 +9,8 @@ using UnityEngine.UI;
 public interface IStorePurchaseService
 {
     void Purchase(string productId, Action<bool> completed);
+    // 스토어(구글 플레이)에서 받은 현지 통화 가격 문자열. 아직 준비 안 됐으면 null.
+    string GetLocalizedPrice(string productId);
 }
 
 public interface IRewardedAdService
@@ -29,6 +32,8 @@ public sealed class MockCommerceService : IStorePurchaseService, IRewardedAdServ
 #endif
     }
 
+    public string GetLocalizedPrice(string productId) => null;
+
     public void Show(Action<bool> completed)
     {
 #if UNITY_EDITOR
@@ -48,6 +53,8 @@ public class MainMenuCarouselUI : MonoBehaviour, IBeginDragHandler, IDragHandler
         public string productId;
         public int crystals;
         public bool removesAds;
+        [Tooltip("스토어 가격을 못 받아올 때 표시할 가격 (예: ₩1,100). 실제 구글 플레이 가격이 오면 그걸 우선 표시")]
+        public string fallbackPrice;
     }
 
     [Serializable]
@@ -114,10 +121,14 @@ public class MainMenuCarouselUI : MonoBehaviour, IBeginDragHandler, IDragHandler
 
     void Start()
     {
-        m_store = new MockCommerceService();
 #if UNITY_EDITOR
+        m_store = new MockCommerceService();
         m_ads = new MockCommerceService();
+#elif UNITY_ANDROID
+        m_store = CreateGooglePlayStore();
+        m_ads = AdMobRewardedAdService.Shared;
 #else
+        m_store = new MockCommerceService();
         m_ads = AdMobRewardedAdService.Shared;
 #endif
         m_pageWidth = m_viewport != null ? m_viewport.rect.width : 720f;
@@ -162,6 +173,43 @@ public class MainMenuCarouselUI : MonoBehaviour, IBeginDragHandler, IDragHandler
             RefreshAll();
         });
     }
+
+#if !UNITY_EDITOR && UNITY_ANDROID
+    IStorePurchaseService CreateGooglePlayStore()
+    {
+        List<GooglePlayStoreService.ProductInfo> infos = new List<GooglePlayStoreService.ProductInfo>();
+        if (m_products != null)
+        {
+            foreach (ProductBinding product in m_products)
+            {
+                if (product == null || string.IsNullOrEmpty(product.productId)) continue;
+                infos.Add(new GooglePlayStoreService.ProductInfo
+                {
+                    id = product.productId,
+                    nonConsumable = product.removesAds
+                });
+            }
+        }
+        return new GooglePlayStoreService(infos, OnRestoreOwned);
+    }
+
+    // 앱 시작 시 Google Play가 복원한 비소모성 상품(광고 제거)을 반영
+    void OnRestoreOwned(string productId)
+    {
+        ProductBinding match = FindProduct(productId);
+        if (match == null || GManager.Instance == null || GManager.Instance.IsProgress == null) return;
+        if (match.removesAds) GManager.Instance.IsProgress.SetAdsRemoved();
+        RefreshAll();
+    }
+
+    ProductBinding FindProduct(string productId)
+    {
+        if (m_products == null) return null;
+        foreach (ProductBinding product in m_products)
+            if (product != null && product.productId == productId) return product;
+        return null;
+    }
+#endif
 
     void TryRewardAd()
     {
@@ -208,6 +256,9 @@ public class MainMenuCarouselUI : MonoBehaviour, IBeginDragHandler, IDragHandler
             m_crystalText.text = $"{progress.Crystals:N0}";
         }
 
+        // 스토어 가격이 비동기로 로딩되면 라벨에 반영 (구매 완료로 문구가 바뀐 뒤에는 유지)
+        RefreshProductLabels();
+
         ResearchManager research = GManager.Instance.IsResearch;
         if (m_researchRows != null)
         {
@@ -252,9 +303,7 @@ public class MainMenuCarouselUI : MonoBehaviour, IBeginDragHandler, IDragHandler
                     "왼쪽으로 밀어 메인 화면으로 이동", "SWIPE LEFT TO RETURN TO MAIN");
         }
 
-        if (m_products != null)
-            foreach (ProductBinding product in m_products)
-                if (product?.button != null) SetButtonText(product.button, GetProductLabel(product));
+        RefreshProductLabels();
 
         if (m_shopStatus != null)
             m_shopStatus.text = GameLanguage.Choose(
@@ -273,13 +322,23 @@ public class MainMenuCarouselUI : MonoBehaviour, IBeginDragHandler, IDragHandler
         if (text != null) text.text = value;
     }
 
-    static string GetProductLabel(ProductBinding product)
+    void RefreshProductLabels()
     {
+        if (m_products == null) return;
+        foreach (ProductBinding product in m_products)
+            if (product?.button != null) SetButtonText(product.button, GetProductLabel(product));
+    }
+
+    string GetProductLabel(ProductBinding product)
+    {
+        string storePrice = m_store != null ? m_store.GetLocalizedPrice(product.productId) : null;
+        string price = !string.IsNullOrEmpty(storePrice) ? storePrice : product.fallbackPrice;
+        string priceLine = string.IsNullOrEmpty(price) ? string.Empty : $"\n<size=85%>{price}</size>";
+
         if (product.removesAds)
-            return GameLanguage.Choose("광고 제거 + 3배속\n<size=70%>영구 적용</size>", "REMOVE ADS + 3X SPEED\n<size=70%>PERMANENT</size>");
+            return GameLanguage.Choose("광고 제거 + 3배속", "REMOVE ADS + 3X SPEED") + priceLine;
         return GameLanguage.Choose(
-            $"크리스탈 {product.crystals:N0}개\n<size=70%>크리스탈 패키지</size>",
-            $"{product.crystals:N0} CRYSTALS\n<size=70%>CRYSTAL PACK</size>");
+            $"크리스탈 {product.crystals:N0}개", $"{product.crystals:N0} CRYSTALS") + priceLine;
     }
 
     static string GetResearchName(ResearchType type) => type switch
@@ -294,11 +353,11 @@ public class MainMenuCarouselUI : MonoBehaviour, IBeginDragHandler, IDragHandler
 
     static string GetCurrentResearchEffect(ResearchType type, int level) => type switch
     {
-        ResearchType.Attack => GameLanguage.Choose($"공격력 +{level * 2}%", $"ATTACK +{level * 2}%"),
-        ResearchType.StartGold => GameLanguage.Choose($"시작 골드 +{level * 5}", $"START GOLD +{level * 5}"),
-        ResearchType.GoldGain => GameLanguage.Choose($"처치 골드 +{level * 2}%", $"KILL GOLD +{level * 2}%"),
-        ResearchType.RareSummon => GameLanguage.Choose($"전설 이상 확률 +{level * 0.1f:0.0}%p", $"LEGENDARY+ +{level * 0.1f:0.0}%p"),
-        ResearchType.BossDamage => GameLanguage.Choose($"보스 피해 +{level * 2}%", $"BOSS DAMAGE +{level * 2}%"),
+        ResearchType.Attack => GameLanguage.Choose($"공격력 +{level * 5}%", $"ATTACK +{level * 5}%"),
+        ResearchType.StartGold => GameLanguage.Choose($"시작 골드 +{level * 10}", $"START GOLD +{level * 10}"),
+        ResearchType.GoldGain => GameLanguage.Choose($"처치 골드 +{level * 3}%", $"KILL GOLD +{level * 3}%"),
+        ResearchType.RareSummon => GameLanguage.Choose($"고급 확률 +{level * 1.5f:0.0}%p", $"RARE +{level * 1.5f:0.0}%p"),
+        ResearchType.BossDamage => GameLanguage.Choose($"보스 피해 +{level * 5}%", $"BOSS DAMAGE +{level * 5}%"),
         _ => string.Empty
     };
 

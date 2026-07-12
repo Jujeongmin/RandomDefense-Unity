@@ -130,6 +130,7 @@ public class GManager : MonoBehaviour
         Time.timeScale = 1f;
         m_gameOver = false;
         m_runRewardGranted = false;
+        m_autoSellLowGrade = false; // 재시작 시 자동판매 OFF
         // Ensure restart sequence runs but always hide the result panel even if an error occurs.
         try
         {
@@ -196,6 +197,8 @@ public class GManager : MonoBehaviour
             m_researchManager = GetComponent<ResearchManager>();
             if (m_researchManager == null) m_researchManager = gameObject.AddComponent<ResearchManager>();
             m_researchManager.Initialize(m_playerProgress, m_balanceData);
+
+            LeaderboardService.Initialize();
         }
         else
         {
@@ -249,6 +252,17 @@ public class GManager : MonoBehaviour
         {
             ResultPanel sceneResultPanel = FindAnyObjectByType<ResultPanel>(FindObjectsInactive.Include);
             if (sceneResultPanel != null) RegisterResultPanel(sceneResultPanel);
+
+            // 설정 패널이 비활성 상태로 배치돼 있으면 Start()가 실행되지 않아 등록이 누락되므로 직접 찾는다
+            SettingPanel sceneSettingPanel = FindAnyObjectByType<SettingPanel>(FindObjectsInactive.Include);
+            if (sceneSettingPanel != null)
+            {
+                RegisterSettingsPanel(sceneSettingPanel.gameObject);
+                sceneSettingPanel.gameObject.SetActive(false);
+            }
+
+            // 매 판 자동판매는 OFF로 시작
+            m_autoSellLowGrade = false;
 
             // 게임씬: 풀 초기화 후 매니저들은 각자 Start에서 등록됨
             StartCoroutine(DelayedInitializeManagers());
@@ -309,10 +323,21 @@ public class GManager : MonoBehaviour
         m_gameOver = true;
         Time.timeScale = 0f;
         int currentWave = m_mobManager != null ? m_mobManager.CurrentWave : 1;
-        if (m_playerProgress != null) m_playerProgress.RecordHighestWave(currentWave);
+        RecordRunResult(currentWave);
         if (m_resultPanel != null)
         {
             m_resultPanel.Setup(false, currentWave);
+        }
+    }
+
+    // 도달 웨이브 기록 + 무한모드면 리더보드에 제출
+    void RecordRunResult(int wave)
+    {
+        if (m_playerProgress != null) m_playerProgress.RecordHighestWave(wave);
+        if (GameModeSettings.IsEndless)
+        {
+            if (m_playerProgress != null) m_playerProgress.RecordEndlessWave(wave);
+            LeaderboardService.SubmitEndlessWave(wave);
         }
     }
 
@@ -323,7 +348,7 @@ public class GManager : MonoBehaviour
         m_gameOver = true;
         Time.timeScale = 0f;
         int currentWave = m_mobManager != null ? m_mobManager.CurrentWave : 1;
-        if (m_playerProgress != null) m_playerProgress.RecordHighestWave(currentWave);
+        RecordRunResult(currentWave);
         if (m_resultPanel != null)
         {
             m_resultPanel.Setup(true, currentWave);
@@ -509,6 +534,33 @@ public class GManager : MonoBehaviour
     int GetSellPrice(RarityType.TYPE rarity)
     {
         return m_balanceData != null ? m_balanceData.GetSellPrice(rarity) : 0;
+    }
+
+    // ── 고급 이하 자동 판매 토글 (게임 시작 시 항상 OFF) ──
+    bool m_autoSellLowGrade = false;
+
+    /// <summary>'고급 이하 자동 판매' 토글이 켜져 있는지 여부.</summary>
+    public bool AutoSellLowGradeEnabled => m_autoSellLowGrade;
+
+    /// <summary>고급(Rare) 이하 등급인지 판단합니다.</summary>
+    public static bool IsLowGrade(RarityType.TYPE rarity) => rarity <= RarityType.TYPE.Rare;
+
+    /// <summary>자동 판매 토글 상태를 설정합니다. 켜면 현재 보유한 고급 이하 유닛도 즉시 정리합니다.</summary>
+    public void SetAutoSellLowGrade(bool enabled)
+    {
+        m_autoSellLowGrade = enabled;
+        if (enabled) SweepLowGradeUnits();
+    }
+
+    /// <summary>현재 필드 위의 모든 고급 이하 유닛을 판매합니다.</summary>
+    void SweepLowGradeUnits()
+    {
+        EntityType.TYPE[] classes = { EntityType.TYPE.Wizard, EntityType.TYPE.Archer, EntityType.TYPE.Warrior };
+        foreach (EntityType.TYPE classType in classes)
+        {
+            SellUnits(classType, RarityType.TYPE.Common, 0);
+            SellUnits(classType, RarityType.TYPE.Rare, 0);
+        }
     }
 }
 

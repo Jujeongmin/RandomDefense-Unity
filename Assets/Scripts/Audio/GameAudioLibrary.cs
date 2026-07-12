@@ -13,10 +13,14 @@ public sealed class GameAudioLibrary : ScriptableObject
     public AudioClip confirm;
     public AudioClip error;
     public AudioClip summon;
+    public AudioClip rareSummon;
     public AudioClip sell;
     public AudioClip upgrade;
     public AudioClip mobDeath;
     public AudioClip bossDeath;
+    public AudioClip attackWarrior;
+    public AudioClip attackArcher;
+    public AudioClip attackWizard;
     public AudioClip victory;
     public AudioClip defeat;
 }

@@ -16,7 +16,6 @@ public class SettingPanel : MonoBehaviour
     void Start()
     {
         if (GManager.Instance != null) GManager.Instance.RegisterSettingsPanel(gameObject);
-        EnsureSeparateSoundButtons();
         m_restartButton?.onClick.AddListener(ResumeGame);
         m_exitButton?.onClick.AddListener(ExitToLobby);
         m_bgmButton?.onClick.AddListener(ToggleBgm);
@@ -48,24 +47,6 @@ public class SettingPanel : MonoBehaviour
     {
         GameAudioSettings.ToggleSfx();
         RefreshSoundButtons();
-    }
-
-    void EnsureSeparateSoundButtons()
-    {
-        if (m_bgmButton == null || m_sfxButton != null) return;
-        RectTransform bgmRect = m_bgmButton.transform as RectTransform;
-        float y = bgmRect != null ? bgmRect.anchoredPosition.y : 145f;
-        if (bgmRect != null)
-        {
-            bgmRect.anchoredPosition = new Vector2(-75f, y);
-            bgmRect.sizeDelta = new Vector2(140f, bgmRect.sizeDelta.y);
-        }
-
-        m_sfxButton = Instantiate(m_bgmButton, m_bgmButton.transform.parent);
-        m_sfxButton.name = "SfxButton";
-        RectTransform sfxRect = m_sfxButton.transform as RectTransform;
-        if (sfxRect != null) sfxRect.anchoredPosition = new Vector2(75f, y);
-        m_sfxButtonText = m_sfxButton.GetComponentInChildren<TextMeshProUGUI>(true);
     }
 
     void ApplyLanguage()

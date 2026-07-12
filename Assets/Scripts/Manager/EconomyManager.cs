@@ -12,12 +12,27 @@ public class EconomyManager : MonoBehaviour
     [SerializeField] TextMeshProUGUI m_goldText;
 
     int m_gold = 0;
+    int m_summonCount = 0;
 
     public int Gold => m_gold;
+    public int SummonCount => m_summonCount;
     public event Action<int> GoldChanged;
-    public int SummonCost => GManager.Instance != null && GManager.Instance.Balance != null
-        ? GManager.Instance.Balance.SummonCost
-        : m_summonCost;
+
+    /// <summary>이번 판 소환 횟수에 따라 증가하는 현재 소환 비용.</summary>
+    public int SummonCost
+    {
+        get
+        {
+            GameBalanceData balance = GManager.Instance != null ? GManager.Instance.Balance : null;
+            return balance != null ? balance.GetSummonCost(m_summonCount) : m_summonCost;
+        }
+    }
+
+    /// <summary>소환이 성공적으로 이뤄졌을 때 호출하여 비용 증가 카운터를 올립니다.</summary>
+    public void RegisterSummon()
+    {
+        m_summonCount++;
+    }
 
     private void Start()
     {
@@ -35,6 +50,7 @@ public class EconomyManager : MonoBehaviour
             ? GManager.Instance.IsResearch.StartGoldBonus
             : 0;
         m_gold = baseGold + researchBonus;
+        m_summonCount = 0;
         UpdateGoldUI();
     }
 
@@ -76,6 +92,7 @@ public class EconomyManager : MonoBehaviour
             m_goldText.text = $"{m_gold}";
         }
     }
+
 
     void SetGold(int value)
     {

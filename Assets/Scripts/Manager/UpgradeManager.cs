@@ -15,6 +15,11 @@ public class UpgradeManager : MonoBehaviour
     [SerializeField] TextMeshProUGUI m_archerLvText;
     [SerializeField] TextMeshProUGUI m_warriorLvText;
 
+    [Header("Cost Texts (직접 할당 — 없으면 라벨에 비용 포함 표기)")]
+    [SerializeField] TextMeshProUGUI m_wizardCostText;
+    [SerializeField] TextMeshProUGUI m_archerCostText;
+    [SerializeField] TextMeshProUGUI m_warriorCostText;
+
     [Header("Upgrade Costs")]
     [SerializeField] int m_upgradeBaseCost = 20;
     [SerializeField] int m_upgradeCostStep = 20;
@@ -27,32 +32,8 @@ public class UpgradeManager : MonoBehaviour
 
     public void Initialize()
     {
-        ApplySafeArea();
-        ConfigureLabel(m_wizardLvText);
-        ConfigureLabel(m_archerLvText);
-        ConfigureLabel(m_warriorLvText);
         BindMobManager(GManager.Instance != null ? GManager.Instance.IsMob : null);
         UpdateUpgradeUI();
-    }
-
-    void OnRectTransformDimensionsChange() => ApplySafeArea();
-
-    void ApplySafeArea()
-    {
-        RectTransform label = m_wizardLvText != null ? m_wizardLvText.rectTransform : null;
-        RectTransform card = label != null ? label.parent as RectTransform : null;
-        MobileSafeAreaLayout.ApplyBottom(card != null ? card.parent as RectTransform : null);
-    }
-
-    static void ConfigureLabel(TextMeshProUGUI label)
-    {
-        if (label == null) return;
-        RectTransform rect = label.rectTransform;
-        rect.sizeDelta = new Vector2(rect.sizeDelta.x, 54f);
-        rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, 14f);
-        label.fontSize = 14f;
-        label.lineSpacing = -8f;
-        label.richText = true;
     }
 
     public void BindMobManager(MobManager mobManager)
@@ -122,15 +103,26 @@ public class UpgradeManager : MonoBehaviour
 
     public void UpdateUpgradeUI()
     {
-        SetUpgradeText(m_wizardLvText, GameLanguage.Choose("마법사", "WIZARD"), EntityType.TYPE.Wizard, m_wizardLevel);
-        SetUpgradeText(m_archerLvText, GameLanguage.Choose("궁수", "ARCHER"), EntityType.TYPE.Archer, m_archerLevel);
-        SetUpgradeText(m_warriorLvText, GameLanguage.Choose("전사", "WARRIOR"), EntityType.TYPE.Warrior, m_warriorLevel);
+        SetUpgradeText(m_wizardLvText, m_wizardCostText, GameLanguage.Choose("마법사", "WIZARD"), EntityType.TYPE.Wizard, m_wizardLevel);
+        SetUpgradeText(m_archerLvText, m_archerCostText, GameLanguage.Choose("궁수", "ARCHER"), EntityType.TYPE.Archer, m_archerLevel);
+        SetUpgradeText(m_warriorLvText, m_warriorCostText, GameLanguage.Choose("전사", "WARRIOR"), EntityType.TYPE.Warrior, m_warriorLevel);
     }
 
-    void SetUpgradeText(TextMeshProUGUI label, string className, EntityType.TYPE type, int level)
+    void SetUpgradeText(TextMeshProUGUI label, TextMeshProUGUI costText, string className, EntityType.TYPE type, int level)
     {
         if (label == null) return;
-        label.text = $"{GetEffectivenessText(type)}\n{className} Lv.{level}\n{GetUpgradeCost(type)}G";
+        int cost = GetUpgradeCost(type);
+        if (costText != null)
+        {
+            // 비용은 코인 아이콘 옆 별도 텍스트에 숫자만 표시
+            label.text = $"{GetEffectivenessText(type)}\n{className} Lv.{level}";
+            costText.text = cost.ToString("N0");
+        }
+        else
+        {
+            // CostRow 미생성 시 기존 3줄 표기 유지
+            label.text = $"{GetEffectivenessText(type)}\n{className} Lv.{level}\n{cost}G";
+        }
     }
 
     string GetEffectivenessText(EntityType.TYPE type)

@@ -24,10 +24,14 @@ public static class GameAudioLibraryBuilder
         library.confirm = Load("Assets/GData/Audio/kenney_interface-sounds/Audio/confirmation_002.ogg");
         library.error = Load("Assets/GData/Audio/kenney_interface-sounds/Audio/error_003.ogg");
         library.summon = Load("Assets/GData/Audio/kenney_interface-sounds/Audio/pluck_002.ogg");
+        library.rareSummon = Load("Assets/GData/Audio/kenney_interface-sounds/Audio/bong_001.ogg");
         library.sell = Load("Assets/GData/Audio/kenney_rpg-audio/Audio/handleCoins.ogg");
         library.upgrade = Load("Assets/GData/Audio/kenney_rpg-audio/Audio/bookOpen.ogg");
-        library.mobDeath = Load("Assets/GData/Audio/kenney_impact-sounds/Audio/impactPunch_medium_002.ogg");
+        library.mobDeath = Load("Assets/GData/Audio/kenney_impact-sounds/Audio/impactSoft_heavy_002.ogg");
         library.bossDeath = Load("Assets/GData/Audio/kenney_impact-sounds/Audio/impactMetal_medium_002.ogg");
+        library.attackWarrior = Load("Assets/GData/Audio/kenney_rpg-audio/Audio/chop.ogg");
+        library.attackArcher = Load("Assets/GData/Audio/kenney_impact-sounds/Audio/impactWood_medium_001.ogg");
+        library.attackWizard = Load("Assets/GData/Audio/kenney_interface-sounds/Audio/glitch_002.ogg");
         library.victory = Load("Assets/GData/Audio/kenney_interface-sounds/Audio/confirmation_004.ogg");
         library.defeat = Load("Assets/GData/Audio/kenney_interface-sounds/Audio/error_006.ogg");
 
