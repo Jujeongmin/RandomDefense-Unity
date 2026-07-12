@@ -73,3 +73,7 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# 서드파티/구매 에셋 (재배포 금지 — 로컬에만 보관)
+/[Aa]ssets/Down/
+/[Aa]ssets/Down.meta

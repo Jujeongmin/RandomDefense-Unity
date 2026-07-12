@@ -88,6 +88,18 @@ docs/                 개인정보처리방침 · 스토어 등록 문구 초안
 
 ---
 
+## 클론 시 주의
+
+`Assets/Down/` 폴더(서드파티 에셋 팩)는 라이선스상 저장소에 포함되지 않습니다.
+클론 후 아래 에셋을 별도로 임포트해야 프로젝트가 정상 동작합니다:
+
+- Cainos — Pixel Art Top Down Basic
+- JMO Assets — Cartoon FX Remaster (Free)
+- Clean Vector Icons
+- Universal Stylized UI
+
+---
+
 ## 개발
 
 - 개발: **JunJa/JM**
