@@ -73,6 +73,10 @@ public class SettingPanel : MonoBehaviour
 public static class GameLanguage
 {
     public const string PreferenceKey = "RandomDefense.Language";
-    public static bool IsEnglish => PlayerPrefs.GetInt(PreferenceKey, 0) == 1;
+
+    // 유저가 직접 고른 적이 없으면 기기 언어를 따른다 (한국어 기기 → 한국어, 그 외 → 영어)
+    static int SystemDefault => Application.systemLanguage == SystemLanguage.Korean ? 0 : 1;
+
+    public static bool IsEnglish => PlayerPrefs.GetInt(PreferenceKey, SystemDefault) == 1;
     public static string Choose(string korean, string english) => IsEnglish ? english : korean;
 }

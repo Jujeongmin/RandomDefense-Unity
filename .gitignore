@@ -77,3 +77,11 @@ crashlytics-build.properties
 # 서드파티/구매 에셋 (재배포 금지 — 로컬에만 보관)
 /[Aa]ssets/Down/
 /[Aa]ssets/Down.meta
+/[Aa]ssets/GabrielAguiarProductions/
+/[Aa]ssets/GabrielAguiarProductions.meta
+
+# 자동 생성/잡 파일
+*.slnx
+/[Aa]ssets/Plugins/Android/mainTemplate.gradle.backup*
+/[Aa]ssets/Resources/PerformanceTestRun*.json
+/[Aa]ssets/Resources/PerformanceTestRun*.json.meta

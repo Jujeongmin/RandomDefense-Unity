@@ -18,7 +18,9 @@ MonoBehaviour:
     type: 3}
   m_aniScale: 0.2
   m_speed: 4
-  m_searchLength: 2
+  m_searchLength: 3
   m_atk: {x: 40, y: 60}
-  m_effect: {fileID: 8813961455893045608, guid: 60997dcbc3f3a0249bca2f3b6bf694d2,
-    type: 3}
+  m_hp: 100
+  m_speciesType: 0
+  m_effect: {fileID: 237957116540733013, guid: 896d9b3bbe0e07147bd36c2a56cb8d03, type: 3}
+  m_icon: {fileID: 0}

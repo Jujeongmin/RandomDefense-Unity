@@ -25,6 +25,15 @@ public class SellPanelUI : MonoBehaviour
     [Header("Auto-Sell Toggle (optional — 미할당 시 런타임 자동 생성)")]
     [SerializeField] Button m_autoSellToggle;
 
+    [Header("Localization (영어 문구 — 씬의 한국어 원본은 유지)")]
+    [SerializeField] string m_titleEnglish = "SELL HEROES";
+    [SerializeField] string m_hintEnglish = "CHOOSE HOW MANY TO SELL AT ONCE";
+
+    TextMeshProUGUI m_titleText;
+    TextMeshProUGUI m_hintText;
+    string m_titleKorean;
+    string m_hintKorean;
+
     void Awake()
     {
         for (int i = 0; i < Rarities.Length; i++)
@@ -141,24 +150,22 @@ public class SellPanelUI : MonoBehaviour
                 if (text != count && text != price) { text.text = rarityNames[i]; break; }
         }
 
-        RectTransform content = m_closeButton != null ? m_closeButton.transform.parent as RectTransform : null;
-        if (content == null) return;
-        TextMeshProUGUI topText = null;
-        TextMeshProUGUI lowerText = null;
-        foreach (Transform child in content)
+        // Title/HintText는 씬에 작성된 한국어 문구를 원본으로 보존하고, 영어 모드일 때만 번역 표시
+        ApplyLocalizedLabel(ref m_titleText, ref m_titleKorean, "Title", m_titleEnglish);
+        ApplyLocalizedLabel(ref m_hintText, ref m_hintKorean, "HintText", m_hintEnglish);
+    }
+
+    void ApplyLocalizedLabel(ref TextMeshProUGUI label, ref string korean, string childName, string english)
+    {
+        if (label == null)
         {
-            TextMeshProUGUI text = child.GetComponent<TextMeshProUGUI>();
-            if (text == null) continue;
-            if (topText == null || text.rectTransform.anchoredPosition.y > topText.rectTransform.anchoredPosition.y)
-            {
-                lowerText = topText;
-                topText = text;
-            }
-            else if (lowerText == null || text.rectTransform.anchoredPosition.y > lowerText.rectTransform.anchoredPosition.y)
-                lowerText = text;
+            RectTransform content = m_closeButton != null ? m_closeButton.transform.parent as RectTransform : null;
+            Transform child = content != null ? content.Find(childName) : null;
+            label = child != null ? child.GetComponent<TextMeshProUGUI>() : null;
+            if (label != null) korean = label.text;
         }
-        if (topText != null) topText.text = GameLanguage.Choose("한 번에 판매할 개수를 선택할 수 있어요", "CHOOSE HOW MANY TO SELL AT ONCE");
-        if (lowerText != null) lowerText.text = GameLanguage.Choose("영웅 판매", "SELL HEROES");
+        if (label == null) return;
+        label.text = GameLanguage.IsEnglish ? english : korean;
     }
 
     static void SetButtonLabel(Button button, string value)

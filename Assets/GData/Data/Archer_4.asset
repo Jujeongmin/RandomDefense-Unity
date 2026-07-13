@@ -22,6 +22,7 @@ MonoBehaviour:
   m_atk: {x: 160, y: 240}
   m_hp: 100
   m_speciesType: 0
-  m_effect: {fileID: 8813961455893045608, guid: 60997dcbc3f3a0249bca2f3b6bf694d2,
+  m_effect: {fileID: 7554347380637734949, guid: 530c53c3a126a63408d426915201b96b,
     type: 3}
+  m_pathEffect: {fileID: 0}
   m_icon: {fileID: 0}

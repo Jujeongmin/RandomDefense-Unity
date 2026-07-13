@@ -18,10 +18,10 @@ MonoBehaviour:
     type: 3}
   m_aniScale: 0.2
   m_speed: 4
-  m_searchLength: 2
+  m_searchLength: 3
   m_atk: {x: 40, y: 60}
   m_hp: 100
   m_speciesType: 0
-  m_effect: {fileID: 8813961455893045608, guid: 60997dcbc3f3a0249bca2f3b6bf694d2,
+  m_effect: {fileID: 8945291609344661738, guid: c75f7d58e5fb8f347a84b21028ff8203,
     type: 3}
   m_icon: {fileID: 0}

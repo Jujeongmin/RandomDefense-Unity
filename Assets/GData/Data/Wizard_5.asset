@@ -20,5 +20,10 @@ MonoBehaviour:
   m_speed: 4
   m_searchLength: 50
   m_atk: {x: 320, y: 480}
-  m_effect: {fileID: 8813961455893045608, guid: 60997dcbc3f3a0249bca2f3b6bf694d2,
+  m_hp: 100
+  m_speciesType: 0
+  m_effect: {fileID: 2722392981417633390, guid: 89ac7c38714e4594fba26d1e0ac6ed4a,
     type: 3}
+  m_pathEffect: {fileID: 7747375113154567494, guid: f1e9600e32bc27b4685767b397749057,
+    type: 3}
+  m_icon: {fileID: 0}

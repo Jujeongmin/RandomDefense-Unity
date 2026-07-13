@@ -126,6 +126,12 @@ public class ResultPanel : MonoBehaviour
 
     static void SetRewardAmount(TextMeshProUGUI text, int amount)
     {
-        if (text != null) text.text = $"+{amount:N0}";
+        if (text == null) return;
+        text.text = $"+{amount:N0}";
+        // 보상 수치가 길어져도 rect 안에서 한 줄로 축소되도록 (버튼 라벨의 fitSingleLine과 같은 패턴)
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = 12f;
+        text.fontSizeMax = 22f;
     }
 }

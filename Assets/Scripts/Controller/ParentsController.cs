@@ -74,11 +74,6 @@ public class ParentsController : MonoBehaviour
         m_aniTimer = 0f;
         m_attackTimer = 0f;
         m_targetSearchTimer = 0f;
-
-        if (m_atkEffectObj != null)
-        {
-            m_atkEffectObj.SetActive(false);
-        }
     }
 
     public virtual void Setting(EntityType.TYPE argEntityType, int argEntityIndex)
@@ -234,15 +229,66 @@ public class ParentsController : MonoBehaviour
                 case EntityType.TYPE.Wizard: GameAudioManager.Play(GameAudioManager.Sfx.AttackWizard); break;
             }
 
-            if (m_atkEffectObj == null)
+            FireAttackEffect();
+        }
+    }
+
+    void FireAttackEffect()
+    {
+        GameObject prefab = IsData.IsEffect;
+        if (prefab == null || m_targetMob == null) return;
+
+        // 이펙트는 유닛보다 카메라 쪽(Z = -5)에서 출발
+        GameObject obj = EffectPool.Spawn(prefab, transform.position + new Vector3(0.0f, 0.0f, -5.0f));
+        if (obj == null) return;
+
+        ProjectileEffect projectile = obj.GetComponent<ProjectileEffect>();
+        if (projectile == null) projectile = obj.AddComponent<ProjectileEffect>();
+        projectile.Launch(prefab, m_targetMob.transform);
+
+        FirePathBursts();
+    }
+
+    /// <summary>
+    /// 태초 등급 전용: 몹 이동경로 전체를 따라 순차적으로 이펙트가 터진다
+    /// </summary>
+    void FirePathBursts()
+    {
+        GameObject prefab = IsData.IsPathEffect;
+        if (prefab == null) return;
+
+        var waypoints = GManager.Instance != null && GManager.Instance.IsMob != null
+            ? GManager.Instance.IsMob.MobWaypoints
+            : null;
+        if (waypoints == null || waypoints.Count < 2) return;
+
+        const float spacing = 1.2f;   // 폭발 간격 (월드 유닛)
+        const float waveDelay = 0.03f; // 인접 폭발 간 시차 — 경로를 훑고 지나가는 파동 연출
+        const int maxBursts = 48;      // 성능 안전장치
+
+        int count = 0;
+        float leftover = 0.0f;
+        // 몹은 경로를 루프로 돌기 때문에 마지막→첫 웨이포인트 구간까지 포함
+        for (int i = 0; i < waypoints.Count && count < maxBursts; i++)
+        {
+            Vector3 from = waypoints[i];
+            Vector3 to = waypoints[(i + 1) % waypoints.Count];
+            float segmentLength = Vector3.Distance(from, to);
+            Vector3 dir = segmentLength > 0.0001f ? (to - from) / segmentLength : Vector3.zero;
+
+            for (float d = leftover; d < segmentLength && count < maxBursts; d += spacing)
             {
-                m_atkEffectObj = IsData.CreateEffect(IsAniIndex, transform);
+                Vector3 point = from + dir * d + new Vector3(0.0f, 0.0f, -5.0f);
+                GameObject obj = EffectPool.Spawn(prefab, point);
+                if (obj == null) return;
+
+                PooledBurstEffect burst = obj.GetComponent<PooledBurstEffect>();
+                if (burst == null) burst = obj.AddComponent<PooledBurstEffect>();
+                burst.Play(prefab, count * waveDelay);
+                count++;
             }
-            else
-            {
-                m_atkEffectObj.SetActive(false);
-                m_atkEffectObj.SetActive(true);
-            }
+            leftover = (leftover - segmentLength) % spacing;
+            if (leftover < 0.0f) leftover += spacing;
         }
     }
 
@@ -381,7 +427,6 @@ public class ParentsController : MonoBehaviour
     float m_aniTimer = 0f;
     float m_attackTimer = 0f;
     float m_targetSearchTimer = 0f;
-    GameObject m_atkEffectObj = null;
 
     /// <summary>
     /// Sets localScale so that the object's world scale equals the given desiredWorldScale.

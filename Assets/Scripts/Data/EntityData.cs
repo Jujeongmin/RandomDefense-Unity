@@ -57,6 +57,11 @@ public class EntityData : ScriptableObject
     [SerializeField] GameObject m_effect = null;
 
     /// <summary>
+    /// 공격 시 몹 이동경로 전체에 터지는 추가 이펙트 (태초 등급 전용, 없으면 null)
+    /// </summary>
+    [SerializeField] GameObject m_pathEffect = null;
+
+    /// <summary>
     /// UI용 아이콘
     /// </summary>
     [SerializeField] Sprite m_icon = null;
@@ -112,21 +117,12 @@ public class EntityData : ScriptableObject
     public int IsHp { get { return m_hp; } }
 
     /// <summary>
-    /// 이펙트 생성 및 반환
+    /// 공격 이펙트(발사체) 프리팹 — EffectPool을 통해 생성/재사용
     /// </summary>
-    /// <param name="argIndex">이펙트 인덱스</param>
-    /// <param name="argTrans">부모 트랜스폼</param>
-    /// <returns>생성된 오브젝트</returns>
-    public GameObject CreateEffect(int argIndex, Transform argTrans)
-    {
-        GameObject _obj = Instantiate(m_effect, argTrans);
-        // Bring closer to camera (Z = -5) and ensure high sorting order
-        _obj.transform.localPosition = new Vector3(0.0f, 0.0f, -5.0f);
-        _obj.name = $"Effect_{argIndex}";
+    public GameObject IsEffect => m_effect;
 
-        var sr = _obj.GetComponent<SpriteRenderer>();
-        if (sr != null) sr.sortingOrder = 100; // Force it to be in front
-
-        return _obj;
-    }
+    /// <summary>
+    /// 몹 이동경로 전체에 터지는 추가 이펙트 프리팹 (태초 등급 전용)
+    /// </summary>
+    public GameObject IsPathEffect => m_pathEffect;
 }

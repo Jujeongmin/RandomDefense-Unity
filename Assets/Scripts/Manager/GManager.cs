@@ -185,6 +185,9 @@ public class GManager : MonoBehaviour
             Instance = this;
             DontDestroyOnLoad(gameObject);
 
+            // 터치가 없어도 화면이 꺼지지 않도록 (방치형 플레이 대응)
+            Screen.sleepTimeout = SleepTimeout.NeverSleep;
+
             if (m_balanceData == null)
             {
                 m_balanceData = ScriptableObject.CreateInstance<GameBalanceData>();
