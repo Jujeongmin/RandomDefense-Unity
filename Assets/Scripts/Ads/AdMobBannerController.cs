@@ -1,9 +1,6 @@
 using GoogleMobileAds.Api;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-#if UNITY_ANDROID || UNITY_IOS
-using GoogleMobileAds.Ump.Api;
-#endif
 
 public sealed class AdMobBannerController : MonoBehaviour
 {
@@ -30,7 +27,6 @@ public sealed class AdMobBannerController : MonoBehaviour
     bool m_initialized;
     volatile bool m_loadFailed; // SDK 콜백은 다른 스레드일 수 있어 Update에서 처리
     float m_retryAt = -1f;
-    volatile string m_status = "시작 전"; // 개발 빌드 화면 오버레이용
     float m_initStartedAt = -1f;
     int m_initAttempts;
 
@@ -93,12 +89,10 @@ public sealed class AdMobBannerController : MonoBehaviour
         MobileAds.RaiseAdEventsOnUnityMainThread = true;
         m_initAttempts++;
         m_initStartedAt = Time.realtimeSinceStartup;
-        m_status = $"SDK 초기화 중... (시도 {m_initAttempts})";
         MobileAds.Initialize(status =>
         {
             m_initialized = status != null;
             m_initStartedAt = -1f;
-            m_status = m_initialized ? "SDK 초기화 완료" : "SDK 초기화 실패";
             RefreshForScene(SceneManager.GetActiveScene());
         });
 #endif
@@ -130,14 +124,11 @@ public sealed class AdMobBannerController : MonoBehaviour
         int safeWidth = MobileAds.Utils.GetDeviceSafeWidth();
         AdSize size = AdSize.GetCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(safeWidth);
         m_banner = new BannerView(BannerId, size, AdPosition.Bottom);
-        m_banner.OnBannerAdLoaded += () => m_status = "배너 로드 성공";
         m_banner.OnBannerAdLoadFailed += error =>
         {
             Debug.LogWarning($"AdMob banner failed to load: {error}");
-            m_status = $"배너 로드 실패: {error}";
             m_loadFailed = true;
         };
-        m_status = $"배너 요청 중... ({(Debug.isDebugBuild ? "테스트 ID" : "실제 ID")})";
         m_banner.LoadAd(new AdRequest());
     }
 
@@ -146,30 +137,5 @@ public sealed class AdMobBannerController : MonoBehaviour
         if (m_banner == null) return;
         m_banner.Destroy();
         m_banner = null;
-    }
-
-    // 개발 빌드 전용: USB 로그 없이도 배너 상태를 화면에서 바로 확인 (정식 빌드에는 표시 안 됨)
-    void OnGUI()
-    {
-        if (!Debug.isDebugBuild) return;
-
-        string info = m_status;
-        if (!m_initialized && m_initStartedAt > 0f)
-            info += $" ({Time.realtimeSinceStartup - m_initStartedAt:F0}초 경과)";
-#if UNITY_ANDROID || UNITY_IOS
-        try
-        {
-            info += $"\n동의상태: {ConsentInformation.ConsentStatus} / 광고요청가능: {ConsentInformation.CanRequestAds()}";
-        }
-        catch { }
-#endif
-
-        var style = new GUIStyle(GUI.skin.box)
-        {
-            fontSize = Mathf.Max(20, Screen.height / 50),
-            alignment = TextAnchor.MiddleCenter,
-            wordWrap = true
-        };
-        GUI.Box(new Rect(10, 10, Screen.width - 20, Screen.height / 7f), $"[광고 디버그] {info}", style);
     }
 }
