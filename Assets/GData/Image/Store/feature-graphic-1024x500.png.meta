@@ -1,15 +1,15 @@
 fileFormatVersion: 2
-guid: bb8aa22e3b2f46b4b873b404fb9d6cca
+guid: 79877fba5a5c34f40b7086782fff52f6
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 982360510996237158
-    second: AppIcon_0
+      213: 6676165736512860707
+    second: feature-graphic-1024x500_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
     mipMapMode: 0
-    enableMipMap: 1
+    enableMipMap: 0
     sRGBTexture: 1
     linearTexture: 0
     fadeOut: 0
@@ -55,9 +55,9 @@ TextureImporter:
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
-  alphaIsTransparency: 0
+  alphaIsTransparency: 1
   spriteTessellationDetail: -1
-  textureType: 0
+  textureType: 8
   textureShape: 1
   singleChannelComponent: 0
   flipbookRows: 1
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: AppIcon_0
+      name: feature-graphic-1024x500_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 1254
-        height: 1254
+        width: 1024
+        height: 500
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 66b4d431eab02ad00800000000000000
-      internalID: 982360510996237158
+      spriteID: 322bb729d5186ac50800000000000000
+      internalID: 6676165736512860707
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      AppIcon_0: 982360510996237158
+      feature-graphic-1024x500_0: 6676165736512860707
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

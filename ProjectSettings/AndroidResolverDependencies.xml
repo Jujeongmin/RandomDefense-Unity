@@ -12,7 +12,7 @@
   </files>
   <settings>
     <setting name="androidAbis" value="arm64-v8a,x86" />
-    <setting name="bundleId" value="com.JunJaJM.RandomDefense" />
+    <setting name="bundleId" value="com.junja.randomdefense" />
     <setting name="explodeAars" value="True" />
     <setting name="gradleBuildEnabled" value="True" />
     <setting name="gradlePropertiesTemplateEnabled" value="True" />
