@@ -11,8 +11,8 @@ using UnityEngine.UI;
 /// <summary>
 /// MainScene 타이틀 화면 꾸미기.
 /// - 앱 콜드스타트 시 뜨는 타이틀 패널(루비 아트 + 로고 + "터치하여 시작"). 터치하면 사라진다.
-/// - 메인화면 배경은 단순 다크 네이비 그라디언트.
-/// - 비어 있던 Mid 영역을 랜덤 유닛 3명으로 채운다(진입할 때마다 조합이 바뀜).
+/// - 메인화면 배경은 게임씬과 같은 원래 맵(Ground 타일). UI 배경을 깔지 않는다.
+/// - 비어 있던 Mid 영역을 랜덤 유닛 3명으로 채운다(진입할 때마다 조합이 바뀜, 정지 idle 포즈).
 /// - START/MODE/ODDS/RANKING 버튼을 Universal Stylized UI 스프라이트로 교체.
 ///
 /// 여러 번 실행해도 안전합니다. 설정 버튼은 자체 아이콘이 있어 건드리지 않습니다.
@@ -21,7 +21,6 @@ public static class MainScreenDecorator
 {
     const string MainScenePath = "Assets/Scenes/MainScene.unity";
     const string RubyArtPath = "Assets/Store/ruby-portrait-1080x1920.png";
-    const string GradientPath = "Assets/GData/Image/UI/main-bg-gradient.png";
     const string LogoPath = "Assets/GData/Image/UI/title-logo.png";
     const string ButtonAtlasPath = "Assets/Down/Universal Stylized UI/Atlases/Complete_Stylized_UI_elements_buttons.png";
     const string FontPath = "Assets/GData/Fonts/Paperlogy-9Black SDF.asset";
@@ -35,7 +34,7 @@ public static class MainScreenDecorator
     static readonly Color TapTextColor = new Color(0.96f, 0.90f, 0.78f, 1f);
 
     static readonly string[] UnitClasses = { "Warrior", "Wizard", "Archer" };
-    static readonly int[] IdleFrames = { 0, 1, 2 }; // 정면 idle 프레임 (뒷모습 9~11 제외)
+    const int IdlePoseFrame = 1; // 정면 idle 포즈 (뒷모습 9~11 제외)
 
     const int UiLayer = 5;
 
@@ -43,7 +42,6 @@ public static class MainScreenDecorator
     public static void Decorate()
     {
         EnsureSpriteImport(RubyArtPath, SpriteImportMode.Single);
-        EnsureSpriteImport(GradientPath, SpriteImportMode.Single);
         EnsureSpriteImport(LogoPath, SpriteImportMode.Single);
 
         Scene scene = EditorSceneManager.OpenScene(MainScenePath, OpenSceneMode.Single);
@@ -68,8 +66,8 @@ public static class MainScreenDecorator
         // 구 버전이 붙였던 MainScreenPresenter는 스크립트가 삭제돼 Missing 컴포넌트로 남는다. 제거한다.
         GameObjectUtility.RemoveMonoBehavioursWithMissingScript(manager.gameObject);
 
-        // 1) 단순 그라디언트 배경 (페이지들 뒤)
-        BuildGradientBackground(canvas);
+        // 1) 배경 UI 제거 — 게임씬과 같은 원래 맵(Ground 타일)이 보이게 한다
+        RemoveChild(canvas.transform, "Background");
 
         // 2) 랜덤 유닛 쇼케이스 (빈 Mid 영역)
         RectTransform mid = FindDeep(canvas.transform, "Mid");
@@ -90,27 +88,7 @@ public static class MainScreenDecorator
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         AssetDatabase.SaveAssets();
-        Debug.Log("[MainScreenDecorator] 메인화면 갱신 완료 — 그라디언트 배경 / 랜덤 유닛 / 버튼 / 타이틀 패널");
-    }
-
-    // ---- 배경 ----
-
-    static void BuildGradientBackground(Canvas canvas)
-    {
-        RectTransform rect = EnsureChild(canvas.transform, "Background");
-        rect.SetSiblingIndex(0);
-        Stretch(rect);
-
-        Image image = Ensure<Image>(rect.gameObject);
-        image.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(GradientPath);
-        image.color = Color.white;
-        image.type = Image.Type.Simple;
-        image.preserveAspect = false;
-        image.raycastTarget = false;
-
-        // 이전 버전이 붙여 놓은 화면비 피터는 그라디언트엔 불필요
-        AspectRatioFitter fitter = rect.GetComponent<AspectRatioFitter>();
-        if (fitter != null) Object.DestroyImmediate(fitter);
+        Debug.Log("[MainScreenDecorator] 메인화면 갱신 완료 — 원래 맵 배경 / 랜덤 유닛(정지) / 버튼 / 타이틀 패널");
     }
 
     // ---- 유닛 쇼케이스 ----
@@ -134,17 +112,14 @@ public static class MainScreenDecorator
         slots.GetArrayElementAtIndex(1).objectReferenceValue = center;
         slots.GetArrayElementAtIndex(2).objectReferenceValue = right;
 
-        List<(string name, Sprite[] frames)> looks = CollectUnitLooks();
+        List<(string name, Sprite pose)> looks = CollectUnitLooks();
         SerializedProperty looksProp = so.FindProperty("m_looks");
         looksProp.arraySize = looks.Count;
         for (int i = 0; i < looks.Count; i++)
         {
             SerializedProperty element = looksProp.GetArrayElementAtIndex(i);
             element.FindPropertyRelative("Name").stringValue = looks[i].name;
-            SerializedProperty frames = element.FindPropertyRelative("Frames");
-            frames.arraySize = looks[i].frames.Length;
-            for (int f = 0; f < looks[i].frames.Length; f++)
-                frames.GetArrayElementAtIndex(f).objectReferenceValue = looks[i].frames[f];
+            element.FindPropertyRelative("Pose").objectReferenceValue = looks[i].pose;
         }
 
         so.ApplyModifiedPropertiesWithoutUndo();
@@ -167,25 +142,17 @@ public static class MainScreenDecorator
         return image;
     }
 
-    static List<(string, Sprite[])> CollectUnitLooks()
+    static List<(string, Sprite)> CollectUnitLooks()
     {
-        var looks = new List<(string, Sprite[])>();
+        var looks = new List<(string, Sprite)>();
         foreach (string unitClass in UnitClasses)
         {
             for (int tier = 0; tier <= 5; tier++)
             {
                 string path = $"{CharacterDir}/{unitClass}_{tier}.png";
-                Object[] assets = AssetDatabase.LoadAllAssetsAtPath(path);
-                if (assets == null || assets.Length == 0) continue;
-
-                var byName = assets.OfType<Sprite>().ToDictionary(s => s.name, s => s);
-                var frames = new List<Sprite>();
-                foreach (int f in IdleFrames)
-                    if (byName.TryGetValue($"{unitClass}_{tier}_{f}", out Sprite sprite))
-                        frames.Add(sprite);
-
-                if (frames.Count > 0)
-                    looks.Add(($"{unitClass}_{tier}", frames.ToArray()));
+                Sprite pose = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>()
+                    .FirstOrDefault(s => s.name == $"{unitClass}_{tier}_{IdlePoseFrame}");
+                if (pose != null) looks.Add(($"{unitClass}_{tier}", pose));
             }
         }
         if (looks.Count == 0)

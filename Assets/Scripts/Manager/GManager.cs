@@ -122,7 +122,7 @@ public class GManager : MonoBehaviour
     public void RegisterSelectedClassNameText(TextMeshProUGUI text)
     {
         m_selectedClassNameText = text;
-        if (m_selectedClassNameText != null) m_selectedClassNameText.text = "직업 선택";
+        if (m_selectedClassNameText != null) m_selectedClassNameText.text = GameLanguage.Choose("직업 선택", "SELECT CLASS");
     }
 
     public void RestartGame()
@@ -295,7 +295,7 @@ public class GManager : MonoBehaviour
         if (m_upgradeManager != null) m_upgradeManager.Initialize();
         if (m_speedManager != null) m_speedManager.Initialize();
         if (m_poolManager != null) m_poolManager.Initialize();
-        if (m_selectedClassNameText != null) m_selectedClassNameText.text = "직업 선택";
+        if (m_selectedClassNameText != null) m_selectedClassNameText.text = GameLanguage.Choose("직업 선택", "SELECT CLASS");
 
         if (m_spawnTextManager != null) m_spawnTextManager.Initialize();
 
@@ -459,10 +459,10 @@ public class GManager : MonoBehaviour
         {
             string className = (EntityType.TYPE)classType switch
             {
-                EntityType.TYPE.Wizard => "마법사",
-                EntityType.TYPE.Archer => "궁수",
-                EntityType.TYPE.Warrior => "전사",
-                _ => "알 수 없음"
+                EntityType.TYPE.Wizard => GameLanguage.Choose("마법사", "WIZARD"),
+                EntityType.TYPE.Archer => GameLanguage.Choose("궁수", "ARCHER"),
+                EntityType.TYPE.Warrior => GameLanguage.Choose("전사", "WARRIOR"),
+                _ => GameLanguage.Choose("알 수 없음", "UNKNOWN")
             };
             m_selectedClassNameText.text = className;
         }
