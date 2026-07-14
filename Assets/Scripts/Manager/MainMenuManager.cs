@@ -10,13 +10,13 @@ public class MainMenuManager : MonoBehaviour
     [SerializeField] Button m_startButton;
     [SerializeField] Button m_settingButton;
     [SerializeField] TextMeshProUGUI m_highWaveText;
-    [Tooltip("모드(일반/무한) 선택 버튼 (미할당 시 자동 생성)")]
+    [Tooltip("모드(일반/무한) 선택 버튼")]
     [SerializeField] Button m_modeButton;
-    [Tooltip("확률 표기 화면을 여는 버튼 (미할당 시 자동 생성)")]
+    [Tooltip("확률 표기 화면을 여는 버튼")]
     [SerializeField] Button m_oddsButton;
-    [Tooltip("확률 표기 패널 (씬에 미리 배치 후 할당, 미할당 시 자동 생성)")]
+    [Tooltip("확률 표기 패널")]
     [SerializeField] RarityOddsPanel m_oddsPanel;
-    [Tooltip("무한모드 랭킹(리더보드) 버튼 (미할당 시 자동 생성)")]
+    [Tooltip("무한모드 랭킹(리더보드) 버튼")]
     [SerializeField] Button m_rankingButton;
 
     [Header("Settings UI")]
@@ -42,29 +42,9 @@ public class MainMenuManager : MonoBehaviour
         m_startButton?.onClick.AddListener(OnStartButtonClicked);
         m_settingButton?.onClick.AddListener(OpenSettings);
 
-        if (m_modeButton == null) m_modeButton = CloneMenuButton("ModeButton", -1);
-        if (m_modeButton != null)
-        {
-            m_modeButton.onClick.RemoveAllListeners();
-            m_modeButton.onClick.AddListener(OnModeButtonClicked);
-        }
-
-        Transform canvasParent = ResolveCanvasParent();
-        if (m_oddsPanel == null) m_oddsPanel = FindAnyObjectByType<RarityOddsPanel>(FindObjectsInactive.Include);
-        if (m_oddsPanel == null) m_oddsPanel = RarityOddsPanel.Create(canvasParent);
-        if (m_oddsButton == null) m_oddsButton = CreateOddsButton(canvasParent);
-        if (m_oddsButton != null)
-        {
-            m_oddsButton.onClick.RemoveAllListeners();
-            m_oddsButton.onClick.AddListener(() => { if (m_oddsPanel != null) m_oddsPanel.Open(); });
-        }
-
-        if (m_rankingButton == null) m_rankingButton = CreateRankingButton(canvasParent);
-        if (m_rankingButton != null)
-        {
-            m_rankingButton.onClick.RemoveAllListeners();
-            m_rankingButton.onClick.AddListener(() => LeaderboardService.ShowLeaderboard());
-        }
+        m_modeButton?.onClick.AddListener(OnModeButtonClicked);
+        m_oddsButton?.onClick.AddListener(() => { if (m_oddsPanel != null) m_oddsPanel.Open(); });
+        m_rankingButton?.onClick.AddListener(() => LeaderboardService.ShowLeaderboard());
         m_bgmButton?.onClick.AddListener(ToggleBgm);
         m_sfxButton?.onClick.AddListener(ToggleSfx);
         m_koreanButton?.onClick.AddListener(() => SetLanguage(false));
@@ -143,10 +123,6 @@ public class MainMenuManager : MonoBehaviour
             m_bgmButtonText.text = $"BGM  {(GameAudioSettings.BgmEnabled ? "ON" : "OFF")}";
         if (m_sfxButtonText != null)
             m_sfxButtonText.text = $"SFX  {(GameAudioSettings.SfxEnabled ? "ON" : "OFF")}";
-        /*
-                : (AudioListener.volume > 0f ? "사운드  켜짐" : "사운드  꺼짐");
-        if (m_closeButtonText != null) m_closeButtonText.text = english ? "CLOSE" : "닫기";
-        */
         if (m_closeButtonText != null) m_closeButtonText.text = english ? "CLOSE" : "닫기";
         RefreshResetLabel();
 
@@ -156,56 +132,6 @@ public class MainMenuManager : MonoBehaviour
         RefreshModeButtons();
         if (m_oddsButton != null) SetButtonText(m_oddsButton, english ? "ODDS" : "확률 정보");
         if (m_rankingButton != null) SetButtonText(m_rankingButton, english ? "RANKING" : "랭킹");
-    }
-
-    Transform ResolveCanvasParent()
-    {
-        Canvas canvas = m_startButton != null ? m_startButton.GetComponentInParent<Canvas>() : GetComponentInParent<Canvas>();
-        return canvas != null ? canvas.transform : transform;
-    }
-
-    Button CreateOddsButton(Transform canvasParent)
-        => CreateCornerButton(canvasParent, "OddsButton", new Vector2(16f, 110f), IsEnglish ? "ODDS" : "확률 정보");
-
-    Button CreateRankingButton(Transform canvasParent)
-        => CreateCornerButton(canvasParent, "RankingButton", new Vector2(16f, 166f), IsEnglish ? "RANKING" : "랭킹");
-
-    // 좌하단 코너에 128x48 버튼 생성 (확률/랭킹 등)
-    Button CreateCornerButton(Transform canvasParent, string cornerName, Vector2 position, string labelText)
-    {
-        if (canvasParent == null) return null;
-
-        GameObject go = new GameObject(cornerName, typeof(RectTransform), typeof(CanvasRenderer), typeof(UnityEngine.UI.Image), typeof(Button));
-        RectTransform rect = go.GetComponent<RectTransform>();
-        rect.SetParent(canvasParent, false);
-        rect.anchorMin = rect.anchorMax = new Vector2(0f, 0f);
-        rect.pivot = new Vector2(0f, 0f);
-        rect.anchoredPosition = position;
-        rect.sizeDelta = new Vector2(128f, 48f);
-
-        UnityEngine.UI.Image image = go.GetComponent<UnityEngine.UI.Image>();
-        image.color = new Color(0.16f, 0.24f, 0.38f, 1f);
-
-        Button button = go.GetComponent<Button>();
-        button.targetGraphic = image;
-
-        GameObject labelGo = new GameObject("Label", typeof(RectTransform));
-        RectTransform labelRect = labelGo.GetComponent<RectTransform>();
-        labelRect.SetParent(rect, false);
-        labelRect.anchorMin = Vector2.zero;
-        labelRect.anchorMax = Vector2.one;
-        labelRect.offsetMin = Vector2.zero;
-        labelRect.offsetMax = Vector2.zero;
-
-        TextMeshProUGUI label = labelGo.AddComponent<TextMeshProUGUI>();
-        GameFont.Apply(label);
-        label.alignment = TextAlignmentOptions.Center;
-        label.enableAutoSizing = true;
-        label.fontSizeMin = 10f;
-        label.fontSizeMax = 20f;
-        label.text = labelText;
-
-        return button;
     }
 
     void RefreshResetLabel()
@@ -250,22 +176,5 @@ public class MainMenuManager : MonoBehaviour
                 : (english ? "NORMAL" : "일반");
             SetButtonText(m_modeButton, (english ? "MODE: " : "모드: ") + mode);
         }
-    }
-
-    // START 버튼을 복제해 같은 스타일의 메뉴 버튼을 만듭니다. step이 양수면 아래, 음수면 위에 배치합니다.
-    Button CloneMenuButton(string cloneName, int stepDown)
-    {
-        if (m_startButton == null) return null;
-
-        Button clone = Instantiate(m_startButton, m_startButton.transform.parent);
-        clone.name = cloneName;
-        clone.onClick.RemoveAllListeners();
-
-        RectTransform source = m_startButton.transform as RectTransform;
-        RectTransform rect = clone.transform as RectTransform;
-        if (source != null && rect != null)
-            rect.anchoredPosition = source.anchoredPosition - new Vector2(0f, (source.sizeDelta.y + 24f) * stepDown);
-
-        return clone;
     }
 }
