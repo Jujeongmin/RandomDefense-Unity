@@ -1,13 +1,10 @@
 fileFormatVersion: 2
-guid: 9b0ab0c1b9fcf7843a9e600b0de48e4b
+guid: f5e549437a11a7a44bedf8df2d013bac
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 4440266333061544626
-    second: vignette-overlay_0
-  - first:
-      213: -6663839089055115738
-    second: vignette-overlay_1
+      213: -5295551593847874981
+    second: main-bg-gradient_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -116,35 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: vignette-overlay_0
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 402
-        width: 8
-        height: 110
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 2ba724254befe9d30800000000000000
-      internalID: 4440266333061544626
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: vignette-overlay_1
+      name: main-bg-gradient_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 8
-        height: 190
+        width: 64
+        height: 512
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -153,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 626d180b7a94583a0800000000000000
-      internalID: -6663839089055115738
+      spriteID: b5a91f6e1eb6286b0800000000000000
+      internalID: -5295551593847874981
       vertices: []
       indices: 
       edges: []
@@ -173,8 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      vignette-overlay_0: 4440266333061544626
-      vignette-overlay_1: -6663839089055115738
+      main-bg-gradient_0: -5295551593847874981
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
