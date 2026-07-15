@@ -7,15 +7,12 @@ using UnityEngine;
 /// <summary>
 /// Google Play Games 리더보드(무한모드 도달 웨이브) 래퍼.
 /// 플러그인이 없어도 컴파일되도록 GPGS_ENABLED 심볼로 감쌉니다.
-/// 사용하려면:
-///   1) Google Play Games plugin for Unity(.unitypackage) 설치
-///   2) Project Settings > Player > Scripting Define Symbols 에 GPGS_ENABLED 추가
-///   3) 아래 EndlessLeaderboardId 를 Play Console에서 발급한 ID로 교체
+/// 활성화하려면 Project Settings > Player > Scripting Define Symbols(Android)에
+/// GPGS_ENABLED를 추가하세요. 플러그인 설치와 리더보드 ID 연결은 이미 돼 있습니다.
 /// </summary>
 public static class LeaderboardService
 {
-    // ⚠️ Play Console > 리더보드에서 발급받은 ID로 교체하세요 (예: "CgkI...")
-    const string EndlessLeaderboardId = "REPLACE_WITH_ENDLESS_LEADERBOARD_ID";
+    const string EndlessLeaderboardId = "CgkInLfH0NESEAIQAA";
 
     public static bool IsAvailable
     {
