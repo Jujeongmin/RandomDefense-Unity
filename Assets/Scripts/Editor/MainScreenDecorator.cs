@@ -166,6 +166,131 @@ public static class MainScreenDecorator
         return looks;
     }
 
+    // ---- 게임씬 HUD 통일 (하단 바·결과 패널) ----
+
+    const string GameScenePath = "Assets/Scenes/GameScene.unity";
+
+    [MenuItem("Tools/Random Defense/Unify Game HUD")]
+    public static void UnifyGameHud()
+    {
+        Scene scene = EditorSceneManager.OpenScene(GameScenePath, OpenSceneMode.Single);
+        Canvas canvas = Object.FindAnyObjectByType<Canvas>();
+        if (canvas == null) throw new System.InvalidOperationException("GameScene에서 Canvas를 찾지 못했습니다.");
+
+        Sprite goldSquare = LoadAtlasSprite(GoldSquare);
+        Sprite navyPill = LoadAtlasSprite(NavyPill);
+        Sprite whitePill = LoadAtlasSprite(WhitePill);
+
+        // 1) 하단 바 — 검은 사각형을 라운드 브랜드 네이비로
+        RectTransform under = FindDeep(canvas.transform, "Under");
+        if (under == null) throw new System.InvalidOperationException("Under를 찾지 못했습니다.");
+        StylePanel(under, whitePill, PanelNavy, 0.5f);
+
+        // 2) 직업 강화 버튼들 — 물빠진 반투명 흰색을 네이비 필로 (텍스트 색은 유저가 잡은 그대로)
+        RectTransform jobBtns = FindDeep(under, "JobBtns");
+        if (jobBtns != null) StylePanel(jobBtns, whitePill, new Color(0.02f, 0.02f, 0.07f, 0.45f), 0.7f);
+        foreach (string job in new[] { "WizardBtn", "ArcherBtn", "WarriorBtn" })
+        {
+            RectTransform btn = FindDeep(under, job);
+            if (btn == null) continue;
+            StyleSpriteKeepLabels(btn, navyPill, 1f, Color.white);
+            // 보유 수 배지
+            RectTransform count = FindDeep(btn, job.Replace("Btn", "Count"));
+            if (count != null) StylePanel(count, whitePill, new Color(0.06f, 0.055f, 0.14f, 0.9f), 2f);
+        }
+
+        // 3) 소환 버튼 — 게임의 핵심 CTA이므로 골드
+        RectTransform spawn = FindDeep(under, "SpawnBtn");
+        if (spawn != null)
+        {
+            StyleSpriteKeepLabels(spawn, goldSquare, 1.5f, Color.white);
+            TintAllLabels(spawn, GoldButtonLabel);
+        }
+
+        // 4) 판매 버튼 — 네이비
+        RectTransform sell = FindDeep(under, "SellBtn");
+        if (sell != null) StyleSpriteKeepLabels(sell, navyPill, 1f, Color.white);
+
+        // 5) 판매 패널 — 카드·닫기만. HintText/Title 텍스트·색, 토글/탭의 색은
+        //    유저가 직접 잡았거나 코드가 제어하므로 건드리지 않는다 (스프라이트만 교체).
+        RectTransform sellPanel = FindDeep(under, "SellPanel");
+        if (sellPanel != null)
+        {
+            RectTransform content = FindDeep(sellPanel, "SellContent");
+            if (content != null) StylePanel(content, whitePill, CardNavy, 0.5f);
+            RectTransform cards = FindDeep(sellPanel, "Cards");
+            if (cards != null) StylePanel(cards, whitePill, new Color(0.10f, 0.09f, 0.20f, 1f), 0.7f);
+            RectTransform close = FindDeep(sellPanel, "CloseButton");
+            if (close != null) StyleSpriteKeepLabels(close, goldSquare, 2f, Color.white);
+            RectTransform autoSell = FindDeep(sellPanel, "AutoSellToggle");
+            if (autoSell != null) StyleSpriteKeepColor(autoSell, whitePill, 1f);
+            RectTransform classTabs = FindDeep(sellPanel, "ClassTabs");
+            if (classTabs != null)
+                foreach (Button tab in classTabs.GetComponentsInChildren<Button>(true))
+                    StyleSpriteKeepColor((RectTransform)tab.transform, whitePill, 1f);
+        }
+
+        // 6) 결과 패널 — 투명에 가깝던 카드를 정식 모달로
+        RectTransform result = FindDeep(canvas.transform, "ResultPanel");
+        if (result == null) throw new System.InvalidOperationException("ResultPanel을 찾지 못했습니다.");
+        Image dim = result.GetComponent<Image>();
+        if (dim != null) dim.color = new Color(0f, 0f, 0f, 0.72f); // 설정 패널과 같은 배경 딤
+        RectTransform card = FindDeep(result, "ResultPanelImg");
+        if (card != null)
+        {
+            StylePanel(card, whitePill, CardNavy, 0.5f);
+            TintText(card, "TitleText", CreamText);
+            TintText(card, "DetailText", CreamText);
+        }
+        RectTransform basic = FindDeep(result, "BasicRewardButton");
+        if (basic != null) { StyleSpriteKeepLabels(basic, navyPill, 1f, Color.white); TintAllLabels(basic, NavyButtonLabel); }
+        RectTransform dbl = FindDeep(result, "DoubleRewardButton");
+        if (dbl != null) { StyleSpriteKeepLabels(dbl, goldSquare, 1.5f, Color.white); TintAllLabels(dbl, GoldButtonLabel); }
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("[MainScreenDecorator] 게임 HUD 통일 완료 — 하단 바 / 강화·소환·판매 버튼 / 판매 패널 / 결과 패널");
+    }
+
+    /// <summary>버튼/이미지에 스프라이트를 입히되 라벨 색은 건드리지 않습니다.</summary>
+    static void StyleSpriteKeepLabels(RectTransform rect, Sprite sprite, float ppu, Color tint)
+    {
+        Image image = rect.GetComponent<Image>();
+        if (image == null) return;
+        image.sprite = sprite;
+        image.type = Image.Type.Sliced;
+        image.pixelsPerUnitMultiplier = ppu;
+        image.color = tint;
+
+        Button button = rect.GetComponent<Button>();
+        if (button != null)
+        {
+            button.targetGraphic = image;
+            ColorBlock colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.pressedColor = new Color(0.82f, 0.82f, 0.86f, 1f);
+            colors.disabledColor = new Color(0.6f, 0.6f, 0.6f, 0.5f);
+            button.colors = colors;
+        }
+    }
+
+    /// <summary>스프라이트만 교체하고 색은 그대로 둡니다 (코드가 색을 제어하는 토글/탭용).</summary>
+    static void StyleSpriteKeepColor(RectTransform rect, Sprite sprite, float ppu)
+    {
+        Image image = rect.GetComponent<Image>();
+        if (image == null) return;
+        image.sprite = sprite;
+        image.type = Image.Type.Sliced;
+        image.pixelsPerUnitMultiplier = ppu;
+    }
+
+    static void TintAllLabels(RectTransform root, Color color)
+    {
+        foreach (TextMeshProUGUI text in root.GetComponentsInChildren<TextMeshProUGUI>(true))
+            text.color = color;
+    }
+
     // ---- 가독성·분위기 다듬기 ----
 
     const string EdgeScrimPath = "Assets/GData/Image/UI/edge-scrim.png";
