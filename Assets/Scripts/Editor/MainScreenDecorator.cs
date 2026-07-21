@@ -247,10 +247,33 @@ public static class MainScreenDecorator
         RectTransform dbl = FindDeep(result, "DoubleRewardButton");
         if (dbl != null) { StyleSpriteKeepLabels(dbl, goldSquare, 1.5f, Color.white); TintAllLabels(dbl, GoldButtonLabel); }
 
+        // 7) 일시정지 설정 패널 — 결과 패널과 같은 모달 문법
+        //    (루트 'Setting'은 캔버스 직속. Top의 설정 버튼과 이름이 같아 캔버스 자식에서 찾는다)
+        RectTransform pause = null;
+        foreach (Transform child in canvas.transform)
+            if (child.name == "Setting") { pause = (RectTransform)child; break; }
+        if (pause != null)
+        {
+            Image pauseDim = pause.GetComponent<Image>();
+            if (pauseDim != null) pauseDim.color = new Color(0f, 0f, 0f, 0.72f);
+            RectTransform pauseCard = FindDeep(pause, "PanelImg");
+            if (pauseCard != null) StylePanel(pauseCard, whitePill, CardNavy, 0.5f);
+            // 재시작 = 이어서 하게 만드는 주요 행동(골드), 나가기 = 판을 버리는 행동(경고 빨강)
+            RectTransform restart = FindDeep(pause, "RestartBtn");
+            if (restart != null) { StyleSpriteKeepLabels(restart, goldSquare, 1.5f, Color.white); TintAllLabels(restart, GoldButtonLabel); }
+            RectTransform exit = FindDeep(pause, "ExitBtn");
+            if (exit != null) { StyleSpriteKeepLabels(exit, whitePill, 1f, DangerRed); TintAllLabels(exit, CreamText); }
+            foreach (string audio in new[] { "BgmButton", "SfxButton" })
+            {
+                RectTransform btn = FindDeep(pause, audio);
+                if (btn != null) { StyleSpriteKeepLabels(btn, navyPill, 1f, Color.white); TintAllLabels(btn, NavyButtonLabel); }
+            }
+        }
+
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         AssetDatabase.SaveAssets();
-        Debug.Log("[MainScreenDecorator] 게임 HUD 통일 완료 — 하단 바 / 강화·소환·판매 버튼 / 판매 패널 / 결과 패널");
+        Debug.Log("[MainScreenDecorator] 게임 HUD 통일 완료 — 하단 바 / 강화·소환·판매 버튼 / 판매 패널 / 결과 패널 / 일시정지 패널");
     }
 
     /// <summary>버튼/이미지에 스프라이트를 입히되 라벨 색은 건드리지 않습니다.</summary>
