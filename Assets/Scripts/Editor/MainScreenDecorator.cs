@@ -29,6 +29,7 @@ public static class MainScreenDecorator
     const string GoldSquare = "Complete_Stylized_UI_elements_buttons_36";
     const string NavyPill = "Complete_Stylized_UI_elements_buttons_37";
     const string WhitePill = "Complete_Stylized_UI_elements_buttons_55"; // 순백 라운드 사각 — 틴트로 원하는 색을 낸다
+    const string GoldFlat = "Complete_Stylized_UI_elements_buttons_53";  // 평평한 골드 — 작은 버튼용 (대칭 여백, 입체 턱 없음)
 
     static readonly Color GoldButtonLabel = new Color(0.11f, 0.08f, 0.30f, 1f);
     static readonly Color NavyButtonLabel = new Color(0.96f, 0.90f, 0.78f, 1f);
@@ -177,9 +178,14 @@ public static class MainScreenDecorator
         Canvas canvas = Object.FindAnyObjectByType<Canvas>();
         if (canvas == null) throw new System.InvalidOperationException("GameScene에서 Canvas를 찾지 못했습니다.");
 
-        Sprite goldSquare = LoadAtlasSprite(GoldSquare);
+        Sprite goldFlat = LoadAtlasSprite(GoldFlat);
         Sprite navyPill = LoadAtlasSprite(NavyPill);
         Sprite whitePill = LoadAtlasSprite(WhitePill);
+
+        // 0) 캔버스를 region 구분선(sortingOrder 90~111)보다 앞으로.
+        //    선은 맵·유닛 위에 그대로 남고, UI(특히 모달 패널)가 그 위를 덮는다.
+        Canvas rootCanvas = canvas.GetComponent<Canvas>();
+        rootCanvas.sortingOrder = 200;
 
         // 1) 하단 바 — 검은 사각형을 라운드 브랜드 네이비로
         RectTransform under = FindDeep(canvas.transform, "Under");
@@ -203,7 +209,7 @@ public static class MainScreenDecorator
         RectTransform spawn = FindDeep(under, "SpawnBtn");
         if (spawn != null)
         {
-            StyleSpriteKeepLabels(spawn, goldSquare, 1.5f, Color.white);
+            StyleSpriteKeepLabels(spawn, goldFlat, 1.5f, Color.white);
             TintAllLabels(spawn, GoldButtonLabel);
         }
 
@@ -221,7 +227,7 @@ public static class MainScreenDecorator
             RectTransform cards = FindDeep(sellPanel, "Cards");
             if (cards != null) StylePanel(cards, whitePill, new Color(0.10f, 0.09f, 0.20f, 1f), 0.7f);
             RectTransform close = FindDeep(sellPanel, "CloseButton");
-            if (close != null) StyleSpriteKeepLabels(close, goldSquare, 2f, Color.white);
+            if (close != null) StyleSpriteKeepLabels(close, goldFlat, 3f, Color.white);
             RectTransform autoSell = FindDeep(sellPanel, "AutoSellToggle");
             if (autoSell != null) StyleSpriteKeepColor(autoSell, whitePill, 1f);
             RectTransform classTabs = FindDeep(sellPanel, "ClassTabs");
@@ -245,7 +251,7 @@ public static class MainScreenDecorator
         RectTransform basic = FindDeep(result, "BasicRewardButton");
         if (basic != null) { StyleSpriteKeepLabels(basic, navyPill, 1f, Color.white); TintAllLabels(basic, NavyButtonLabel); }
         RectTransform dbl = FindDeep(result, "DoubleRewardButton");
-        if (dbl != null) { StyleSpriteKeepLabels(dbl, goldSquare, 1.5f, Color.white); TintAllLabels(dbl, GoldButtonLabel); }
+        if (dbl != null) { StyleSpriteKeepLabels(dbl, goldFlat, 1.5f, Color.white); TintAllLabels(dbl, GoldButtonLabel); }
 
         // 7) 일시정지 설정 패널 — 결과 패널과 같은 모달 문법
         //    (루트 'Setting'은 캔버스 직속. Top의 설정 버튼과 이름이 같아 캔버스 자식에서 찾는다)
@@ -260,7 +266,7 @@ public static class MainScreenDecorator
             if (pauseCard != null) StylePanel(pauseCard, whitePill, CardNavy, 0.5f);
             // 재시작 = 이어서 하게 만드는 주요 행동(골드), 나가기 = 판을 버리는 행동(경고 빨강)
             RectTransform restart = FindDeep(pause, "RestartBtn");
-            if (restart != null) { StyleSpriteKeepLabels(restart, goldSquare, 1.5f, Color.white); TintAllLabels(restart, GoldButtonLabel); }
+            if (restart != null) { StyleSpriteKeepLabels(restart, goldFlat, 1.5f, Color.white); TintAllLabels(restart, GoldButtonLabel); }
             RectTransform exit = FindDeep(pause, "ExitBtn");
             if (exit != null) { StyleSpriteKeepLabels(exit, whitePill, 1f, DangerRed); TintAllLabels(exit, CreamText); }
             foreach (string audio in new[] { "BgmButton", "SfxButton" })
@@ -363,7 +369,7 @@ public static class MainScreenDecorator
         Canvas canvas = Object.FindAnyObjectByType<Canvas>();
         if (canvas == null) throw new System.InvalidOperationException("MainScene에서 Canvas를 찾지 못했습니다.");
 
-        Sprite goldSquare = LoadAtlasSprite(GoldSquare);
+        Sprite goldFlat = LoadAtlasSprite(GoldFlat);
         Sprite navyPill = LoadAtlasSprite(NavyPill);
         Sprite whitePill = LoadAtlasSprite(WhitePill);
 
@@ -373,7 +379,7 @@ public static class MainScreenDecorator
         StylePanel(shop, whitePill, PanelNavy, 0.5f);
         foreach (string item in new[] { "Small Crystal", "Medium Crystal", "Large Crystal", "Extra Large Crystal", "Remove Ads" })
             StyleNamedButton(shop, item, navyPill, 1f, NavyButtonLabel);
-        StyleNamedButton(shop, "RewardAd", goldSquare, 1.5f, GoldButtonLabel);
+        StyleNamedButton(shop, "RewardAd", goldFlat, 1.5f, GoldButtonLabel);
         TintText(shop, "Title", CreamText);
         TintText(shop, "ShopStatus", CreamText);
 
@@ -416,7 +422,7 @@ public static class MainScreenDecorator
         {
             RectTransform card = FindDeep(oddsCard, "Card");
             if (card != null) StylePanel(card, whitePill, CardNavy, 0.7f);
-            Button close = StyleNamedButton(oddsCard, "Close", goldSquare, 1.5f, GoldButtonLabel);
+            Button close = StyleNamedButton(oddsCard, "Close", goldFlat, 1.5f, GoldButtonLabel);
             if (close != null)
             {
                 TextMeshProUGUI label = close.GetComponentInChildren<TextMeshProUGUI>(true);

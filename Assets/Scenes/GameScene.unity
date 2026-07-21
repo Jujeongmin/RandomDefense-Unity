@@ -4069,7 +4069,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 1099718238, guid: fd6cb592190e4d0478872c048c13d0cc, type: 3}
+  m_Sprite: {fileID: 1812132976, guid: fd6cb592190e4d0478872c048c13d0cc, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -5209,7 +5209,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 1099718238, guid: fd6cb592190e4d0478872c048c13d0cc, type: 3}
+  m_Sprite: {fileID: 1812132976, guid: fd6cb592190e4d0478872c048c13d0cc, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -5218,7 +5218,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 2
+  m_PixelsPerUnitMultiplier: 3
 --- !u!222 &712360334
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -6347,7 +6347,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 15
+  m_SortingOrder: 200
   m_TargetDisplay: 0
 --- !u!224 &958266462
 RectTransform:
@@ -6512,7 +6512,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 1099718238, guid: fd6cb592190e4d0478872c048c13d0cc, type: 3}
+  m_Sprite: {fileID: 1812132976, guid: fd6cb592190e4d0478872c048c13d0cc, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -18970,7 +18970,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 1099718238, guid: fd6cb592190e4d0478872c048c13d0cc, type: 3}
+  m_Sprite: {fileID: 1812132976, guid: fd6cb592190e4d0478872c048c13d0cc, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
