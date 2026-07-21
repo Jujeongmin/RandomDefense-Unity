@@ -28,10 +28,16 @@ public static class MainScreenDecorator
 
     const string GoldSquare = "Complete_Stylized_UI_elements_buttons_36";
     const string NavyPill = "Complete_Stylized_UI_elements_buttons_37";
+    const string WhitePill = "Complete_Stylized_UI_elements_buttons_55"; // 순백 라운드 사각 — 틴트로 원하는 색을 낸다
 
     static readonly Color GoldButtonLabel = new Color(0.11f, 0.08f, 0.30f, 1f);
     static readonly Color NavyButtonLabel = new Color(0.96f, 0.90f, 0.78f, 1f);
     static readonly Color TapTextColor = new Color(0.96f, 0.90f, 0.78f, 1f);
+    static readonly Color CreamText = new Color(0.96f, 0.90f, 0.78f, 1f);
+    static readonly Color PanelNavy = new Color(0.045f, 0.04f, 0.115f, 0.96f);  // 페이지 패널 배경
+    static readonly Color CardNavy = new Color(0.06f, 0.055f, 0.14f, 1f);       // 설정/확률 카드
+    static readonly Color BarNavy = new Color(0.05f, 0.05f, 0.12f, 0.92f);      // 재화 바
+    static readonly Color DangerRed = new Color(0.55f, 0.16f, 0.18f, 1f);       // 데이터 초기화
 
     static readonly string[] UnitClasses = { "Warrior", "Wizard", "Archer" };
     const int IdlePoseFrame = 1; // 정면 idle 포즈 (뒷모습 9~11 제외)
@@ -158,6 +164,123 @@ public static class MainScreenDecorator
         if (looks.Count == 0)
             throw new System.InvalidOperationException($"{CharacterDir}에서 유닛 스프라이트를 찾지 못했습니다.");
         return looks;
+    }
+
+    // ---- 페이지 디자인 통일 (상점·연구소·설정·확률·재화 바) ----
+
+    [MenuItem("Tools/Random Defense/Unify Page Designs")]
+    public static void UnifyPages()
+    {
+        Scene scene = EditorSceneManager.OpenScene(MainScenePath, OpenSceneMode.Single);
+
+        Canvas canvas = Object.FindAnyObjectByType<Canvas>();
+        if (canvas == null) throw new System.InvalidOperationException("MainScene에서 Canvas를 찾지 못했습니다.");
+
+        Sprite goldSquare = LoadAtlasSprite(GoldSquare);
+        Sprite navyPill = LoadAtlasSprite(NavyPill);
+        Sprite whitePill = LoadAtlasSprite(WhitePill);
+
+        // 1) 상점: 패널 카드 + 구매 버튼(네이비) + 무료 보상 광고(골드 CTA)
+        RectTransform shop = FindDeep(canvas.transform, "SHOPPanel");
+        if (shop == null) throw new System.InvalidOperationException("SHOPPanel을 찾지 못했습니다.");
+        StylePanel(shop, whitePill, PanelNavy, 0.5f);
+        foreach (string item in new[] { "Small Crystal", "Medium Crystal", "Large Crystal", "Extra Large Crystal", "Remove Ads" })
+            StyleNamedButton(shop, item, navyPill, 1f, NavyButtonLabel);
+        StyleNamedButton(shop, "RewardAd", goldSquare, 1.5f, GoldButtonLabel);
+        TintText(shop, "Title", CreamText);
+        TintText(shop, "ShopStatus", CreamText);
+
+        // 2) 연구소: 패널 카드 + 연구 버튼(네이비)
+        RectTransform lab = FindDeep(canvas.transform, "LABORATORYPanel");
+        if (lab == null) throw new System.InvalidOperationException("LABORATORYPanel을 찾지 못했습니다.");
+        StylePanel(lab, whitePill, PanelNavy, 0.5f);
+        foreach (string item in new[] { "Attack", "StartGold", "GoldGain", "RareSummon", "BossDamage" })
+            StyleNamedButton(lab, item, navyPill, 1f, NavyButtonLabel);
+        TintText(lab, "Title", CreamText);
+        TintText(lab, "ResearchHint", CreamText);
+
+        // 3) 재화 바
+        RectTransform currency = FindDeep(canvas.transform, "CurrencyBar");
+        if (currency != null) StylePanel(currency, whitePill, BarNavy, 1f);
+
+        // 4) 설정 패널: 카드 + 버튼들. 한국어/영어 버튼은 흰 스프라이트를 유지해
+        //    MainMenuManager.SetButtonSelected의 색 틴트(선택 파랑/비선택 네이비)가 그대로 동작한다.
+        RectTransform settings = FindDeep(canvas.transform, "SettingsCard");
+        if (settings != null)
+        {
+            StylePanel(settings, whitePill, CardNavy, 0.7f);
+            foreach (string item in new[] { "BgmButton", "SfxButton", "CloseButton" })
+                StyleNamedButton(settings, item, navyPill, 1f, NavyButtonLabel);
+            foreach (string item in new[] { "KoreanButton", "EnglishButton" })
+            {
+                Button b = StyleNamedButton(settings, item, whitePill, 1f, NavyButtonLabel);
+                if (b != null && b.targetGraphic != null)
+                    b.targetGraphic.color = new Color(0.16f, 0.24f, 0.38f, 1f); // 초기 비선택색 (코드가 갱신)
+            }
+            Button reset = StyleNamedButton(settings, "ResetDataButton", whitePill, 1f, NavyButtonLabel);
+            if (reset != null && reset.targetGraphic != null) reset.targetGraphic.color = DangerRed;
+            TintText(settings, "SettingsTitle", CreamText);
+            TintText(settings, "LanguageLabel", CreamText);
+        }
+
+        // 5) 확률 패널: 카드 + 닫기(골드)
+        RectTransform oddsCard = FindDeep(canvas.transform, "RarityOddsPanel");
+        if (oddsCard != null)
+        {
+            RectTransform card = FindDeep(oddsCard, "Card");
+            if (card != null) StylePanel(card, whitePill, CardNavy, 0.7f);
+            Button close = StyleNamedButton(oddsCard, "Close", goldSquare, 1.5f, GoldButtonLabel);
+            if (close != null)
+            {
+                TextMeshProUGUI label = close.GetComponentInChildren<TextMeshProUGUI>(true);
+                if (label != null) label.color = GoldButtonLabel;
+            }
+        }
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("[MainScreenDecorator] 페이지 디자인 통일 완료 — 상점 / 연구소 / 재화 바 / 설정 / 확률 패널");
+    }
+
+    /// <summary>패널·카드류 Image에 라운드 스프라이트와 틴트를 입힙니다. 배치는 건드리지 않습니다.</summary>
+    static void StylePanel(RectTransform rect, Sprite sprite, Color tint, float pixelsPerUnitMultiplier)
+    {
+        Image image = rect.GetComponent<Image>();
+        if (image == null) return;
+        image.sprite = sprite;
+        image.type = Image.Type.Sliced;
+        image.pixelsPerUnitMultiplier = pixelsPerUnitMultiplier;
+        image.color = tint;
+    }
+
+    static Button StyleNamedButton(RectTransform root, string name, Sprite sprite, float ppu, Color labelColor)
+    {
+        RectTransform target = FindDeep(root, name);
+        if (target == null)
+        {
+            Debug.LogWarning($"[MainScreenDecorator] '{name}'를 찾지 못해 건너뜁니다.");
+            return null;
+        }
+        Button button = target.GetComponent<Button>();
+        if (button != null)
+        {
+            StyleButton(button, sprite, ppu, labelColor);
+            return button;
+        }
+        // 버튼이 아니면 이미지만 입힌다
+        StylePanel(target, sprite, Color.white, ppu);
+        TextMeshProUGUI label = target.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (label != null) label.color = labelColor;
+        return null;
+    }
+
+    static void TintText(RectTransform root, string name, Color color)
+    {
+        RectTransform target = FindDeep(root, name);
+        if (target == null) return;
+        TextMeshProUGUI text = target.GetComponent<TextMeshProUGUI>();
+        if (text != null) text.color = color;
     }
 
     // ---- 타이틀 패널 ----
