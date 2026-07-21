@@ -166,6 +166,45 @@ public static class MainScreenDecorator
         return looks;
     }
 
+    // ---- 가독성·분위기 다듬기 ----
+
+    const string EdgeScrimPath = "Assets/GData/Image/UI/edge-scrim.png";
+
+    [MenuItem("Tools/Random Defense/Polish Readability")]
+    public static void PolishReadability()
+    {
+        EnsureSpriteImport(EdgeScrimPath, SpriteImportMode.Single);
+
+        Scene scene = EditorSceneManager.OpenScene(MainScenePath, OpenSceneMode.Single);
+        Canvas canvas = Object.FindAnyObjectByType<Canvas>();
+        if (canvas == null) throw new System.InvalidOperationException("MainScene에서 Canvas를 찾지 못했습니다.");
+
+        // 1) 황혼 스크림 — 화면 위·아래 가장자리에만 브랜드 네이비가 스며들어
+        //    밝은 맵과 다크 UI를 잇고, 최고웨이브/버튼 텍스트의 가독성을 확보한다.
+        //    가운데는 완전 투명이라 맵과 유닛 쇼케이스는 그대로 보인다.
+        RectTransform scrim = EnsureChild(canvas.transform, "EdgeScrim");
+        scrim.SetSiblingIndex(0); // 모든 페이지 뒤
+        Stretch(scrim);
+        Image scrimImage = Ensure<Image>(scrim.gameObject);
+        scrimImage.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(EdgeScrimPath);
+        scrimImage.color = Color.white;
+        scrimImage.type = Image.Type.Simple;
+        scrimImage.raycastTarget = false;
+
+        // 2) 최고웨이브 텍스트 — 순백 대신 시스템 크림색으로 통일
+        RectTransform highWave = FindDeep(canvas.transform, "HighWave");
+        if (highWave != null)
+        {
+            TextMeshProUGUI text = highWave.GetComponent<TextMeshProUGUI>();
+            if (text != null) text.color = CreamText;
+        }
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("[MainScreenDecorator] 가독성 다듬기 완료 — 황혼 스크림 / 최고웨이브 크림색");
+    }
+
     // ---- 페이지 디자인 통일 (상점·연구소·설정·확률·재화 바) ----
 
     [MenuItem("Tools/Random Defense/Unify Page Designs")]
