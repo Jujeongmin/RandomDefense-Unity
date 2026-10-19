@@ -22,28 +22,29 @@ public static class MainScreenDecorator
     const string MainScenePath = "Assets/Scenes/MainScene.unity";
     const string RubyArtPath = "Assets/Store/ruby-portrait-1080x1920.png";
     const string LogoPath = "Assets/GData/Image/UI/title-logo.png";
-    const string ButtonAtlasPath = "Assets/Down/Universal Stylized UI/Atlases/Complete_Stylized_UI_elements_buttons.png";
-    const string FontPath = "Assets/GData/Fonts/Paperlogy-9Black SDF.asset";
-    const string CharacterDir = "Assets/GData/Image/Character";
+    // 디자인 토큰의 단일 출처는 BrandUI입니다. 여기서는 이름만 짧게 빌려 씁니다.
+    const string ButtonAtlasPath = BrandUI.ButtonAtlasPath;
+    const string FontPath = BrandUI.FontPath;
+    const string CharacterDir = BrandUI.CharacterDir;
 
-    const string GoldSquare = "Complete_Stylized_UI_elements_buttons_36";
-    const string NavyPill = "Complete_Stylized_UI_elements_buttons_37";
-    const string WhitePill = "Complete_Stylized_UI_elements_buttons_55"; // 순백 라운드 사각 — 틴트로 원하는 색을 낸다
-    const string GoldFlat = "Complete_Stylized_UI_elements_buttons_53";  // 평평한 골드 — 작은 버튼용 (대칭 여백, 입체 턱 없음)
+    const string GoldSquare = BrandUI.GoldSquare;
+    const string NavyPill = BrandUI.NavyPill;
+    const string WhitePill = BrandUI.WhitePill;
+    const string GoldFlat = BrandUI.GoldFlat;
 
-    static readonly Color GoldButtonLabel = new Color(0.11f, 0.08f, 0.30f, 1f);
-    static readonly Color NavyButtonLabel = new Color(0.96f, 0.90f, 0.78f, 1f);
-    static readonly Color TapTextColor = new Color(0.96f, 0.90f, 0.78f, 1f);
-    static readonly Color CreamText = new Color(0.96f, 0.90f, 0.78f, 1f);
-    static readonly Color PanelNavy = new Color(0.045f, 0.04f, 0.115f, 0.96f);  // 페이지 패널 배경
-    static readonly Color CardNavy = new Color(0.06f, 0.055f, 0.14f, 1f);       // 설정/확률 카드
-    static readonly Color BarNavy = new Color(0.05f, 0.05f, 0.12f, 0.92f);      // 재화 바
-    static readonly Color DangerRed = new Color(0.55f, 0.16f, 0.18f, 1f);       // 데이터 초기화
+    static readonly Color GoldButtonLabel = BrandUI.GoldButtonLabel;
+    static readonly Color NavyButtonLabel = BrandUI.NavyButtonLabel;
+    static readonly Color TapTextColor = BrandUI.CreamText;
+    static readonly Color CreamText = BrandUI.CreamText;
+    static readonly Color PanelNavy = BrandUI.PanelNavy;
+    static readonly Color CardNavy = BrandUI.CardNavy;
+    static readonly Color BarNavy = BrandUI.BarNavy;
+    static readonly Color DangerRed = BrandUI.DangerRed;
 
     static readonly string[] UnitClasses = { "Warrior", "Wizard", "Archer" };
     const int IdlePoseFrame = 1; // 정면 idle 포즈 (뒷모습 9~11 제외)
 
-    const int UiLayer = 5;
+    const int UiLayer = BrandUI.UiLayer;
 
     [MenuItem("Tools/Random Defense/Decorate Main Screen")]
     public static void Decorate()
@@ -373,30 +374,18 @@ public static class MainScreenDecorator
         Sprite navyPill = LoadAtlasSprite(NavyPill);
         Sprite whitePill = LoadAtlasSprite(WhitePill);
 
-        // 1) 상점: 패널 카드 + 구매 버튼(네이비) + 무료 보상 광고(골드 CTA)
+        // 상점과 연구소는 이제 전용 빌더(Build Shop Page / Build Research Page)가 만듭니다.
+        // 예전 방식(민짜 알약 버튼)으로 되돌려 버리므로 여기서는 두 페이지의 패널 배경만 입힙니다.
         RectTransform shop = FindDeep(canvas.transform, "SHOPPanel");
-        if (shop == null) throw new System.InvalidOperationException("SHOPPanel을 찾지 못했습니다.");
-        StylePanel(shop, whitePill, PanelNavy, 0.5f);
-        foreach (string item in new[] { "Small Crystal", "Medium Crystal", "Large Crystal", "Extra Large Crystal", "Remove Ads" })
-            StyleNamedButton(shop, item, navyPill, 1f, NavyButtonLabel);
-        StyleNamedButton(shop, "RewardAd", goldFlat, 1.5f, GoldButtonLabel);
-        TintText(shop, "Title", CreamText);
-        TintText(shop, "ShopStatus", CreamText);
-
-        // 2) 연구소: 패널 카드 + 연구 버튼(네이비)
+        if (shop != null) StylePanel(shop, whitePill, PanelNavy, 0.5f);
         RectTransform lab = FindDeep(canvas.transform, "LABORATORYPanel");
-        if (lab == null) throw new System.InvalidOperationException("LABORATORYPanel을 찾지 못했습니다.");
-        StylePanel(lab, whitePill, PanelNavy, 0.5f);
-        foreach (string item in new[] { "Attack", "StartGold", "GoldGain", "RareSummon", "BossDamage" })
-            StyleNamedButton(lab, item, navyPill, 1f, NavyButtonLabel);
-        TintText(lab, "Title", CreamText);
-        TintText(lab, "ResearchHint", CreamText);
+        if (lab != null) StylePanel(lab, whitePill, PanelNavy, 0.5f);
 
-        // 3) 재화 바
+        // 1) 재화 바
         RectTransform currency = FindDeep(canvas.transform, "CurrencyBar");
         if (currency != null) StylePanel(currency, whitePill, BarNavy, 1f);
 
-        // 4) 설정 패널: 카드 + 버튼들. 한국어/영어 버튼은 흰 스프라이트를 유지해
+        // 2) 설정 패널: 카드 + 버튼들. 한국어/영어 버튼은 흰 스프라이트를 유지해
         //    MainMenuManager.SetButtonSelected의 색 틴트(선택 파랑/비선택 네이비)가 그대로 동작한다.
         RectTransform settings = FindDeep(canvas.transform, "SettingsCard");
         if (settings != null)
@@ -416,7 +405,7 @@ public static class MainScreenDecorator
             TintText(settings, "LanguageLabel", CreamText);
         }
 
-        // 5) 확률 패널: 카드 + 닫기(골드)
+        // 3) 확률 패널: 카드 + 닫기(골드)
         RectTransform oddsCard = FindDeep(canvas.transform, "RarityOddsPanel");
         if (oddsCard != null)
         {
@@ -433,7 +422,7 @@ public static class MainScreenDecorator
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         AssetDatabase.SaveAssets();
-        Debug.Log("[MainScreenDecorator] 페이지 디자인 통일 완료 — 상점 / 연구소 / 재화 바 / 설정 / 확률 패널");
+        Debug.Log("[MainScreenDecorator] 페이지 디자인 통일 완료 — 재화 바 / 설정 / 확률 패널 (상점·연구소는 전용 빌더가 담당)");
     }
 
     /// <summary>패널·카드류 Image에 라운드 스프라이트와 틴트를 입힙니다. 배치는 건드리지 않습니다.</summary>

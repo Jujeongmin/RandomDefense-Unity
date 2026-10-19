@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -18,6 +19,24 @@ public class MainMenuManager : MonoBehaviour
     [SerializeField] RarityOddsPanel m_oddsPanel;
     [Tooltip("무한모드 랭킹(리더보드) 버튼")]
     [SerializeField] Button m_rankingButton;
+    [Tooltip("유닛 도감 버튼")]
+    [SerializeField] Button m_collectionButton;
+    [Tooltip("유닛 도감 패널")]
+    [SerializeField] CollectionPanel m_collectionPanel;
+    [Tooltip("출석 보상 버튼")]
+    [SerializeField] Button m_attendanceButton;
+    [Tooltip("출석 보상 패널 — 오늘 안 받았으면 메인화면에 들어올 때 자동으로 열립니다")]
+    [SerializeField] AttendancePanel m_attendancePanel;
+    [Tooltip("오늘 출석을 아직 안 받았을 때 켜지는 빨간 점")]
+    [SerializeField] GameObject m_attendanceBadge;
+    [Tooltip("일일 퀘스트 버튼")]
+    [SerializeField] Button m_questButton;
+    [Tooltip("일일 퀘스트 패널")]
+    [SerializeField] QuestPanel m_questPanel;
+    [Tooltip("수령할 퀘스트 보상이 있을 때 켜지는 빨간 점")]
+    [SerializeField] GameObject m_questBadge;
+    [Tooltip("타이틀 화면 — 이게 사라진 뒤에 출석 팝업을 띄웁니다")]
+    [SerializeField] TitleScreenPanel m_titleScreen;
 
     [Header("Settings UI")]
     [SerializeField] GameObject m_settingPanel;
@@ -45,6 +64,9 @@ public class MainMenuManager : MonoBehaviour
         m_modeButton?.onClick.AddListener(OnModeButtonClicked);
         m_oddsButton?.onClick.AddListener(() => { if (m_oddsPanel != null) m_oddsPanel.Open(); });
         m_rankingButton?.onClick.AddListener(() => LeaderboardService.ShowLeaderboard());
+        m_collectionButton?.onClick.AddListener(() => { if (m_collectionPanel != null) m_collectionPanel.Open(); });
+        m_attendanceButton?.onClick.AddListener(() => { if (m_attendancePanel != null) m_attendancePanel.Open(); });
+        m_questButton?.onClick.AddListener(() => { if (m_questPanel != null) m_questPanel.Open(); });
         m_bgmButton?.onClick.AddListener(ToggleBgm);
         m_sfxButton?.onClick.AddListener(ToggleSfx);
         m_koreanButton?.onClick.AddListener(() => SetLanguage(false));
@@ -53,8 +75,50 @@ public class MainMenuManager : MonoBehaviour
         m_closeButton?.onClick.AddListener(CloseSettings);
 
         if (m_settingPanel != null) m_settingPanel.SetActive(false);
+        if (m_collectionPanel != null) m_collectionPanel.gameObject.SetActive(false);
+        if (m_attendancePanel != null) m_attendancePanel.gameObject.SetActive(false);
+        if (m_questPanel != null) m_questPanel.gameObject.SetActive(false);
+        BindDaily();
         ApplyLanguage();
         Time.timeScale = 1f;
+
+        if (m_attendancePanel != null && m_daily != null && m_daily.CanClaimAttendance)
+            StartCoroutine(OpenAttendanceWhenTitleGone());
+    }
+
+    /// <summary>
+    /// 타이틀 화면이 사라진 뒤에 출석 팝업을 띄웁니다.
+    /// AttendancePanel.Open()이 자기를 맨 앞으로 보내므로, 타이틀이 떠 있는 동안 열면
+    /// 팝업이 타이틀 위로 올라옵니다. 타이틀은 앱 실행당 한 번만 뜨기 때문에,
+    /// 게임에서 메인으로 돌아온 경우에는 이미 꺼져 있어 곧바로 열립니다.
+    /// </summary>
+    IEnumerator OpenAttendanceWhenTitleGone()
+    {
+        while (m_titleScreen != null && m_titleScreen.gameObject.activeSelf) yield return null;
+        m_attendancePanel.Open();
+    }
+
+    DailyMissionManager m_daily;
+
+    /// <summary>보상을 수령하면 배지가 바로 꺼지도록 일일 미션 매니저의 변경 이벤트를 구독합니다.</summary>
+    void BindDaily()
+    {
+        m_daily = GManager.Instance != null ? GManager.Instance.IsDaily : null;
+        if (m_daily != null) m_daily.Changed += RefreshBadges;
+        RefreshBadges();
+    }
+
+    void OnDestroy()
+    {
+        if (m_daily != null) m_daily.Changed -= RefreshBadges;
+    }
+
+    void RefreshBadges()
+    {
+        if (m_attendanceBadge != null)
+            m_attendanceBadge.SetActive(m_daily != null && m_daily.CanClaimAttendance);
+        if (m_questBadge != null)
+            m_questBadge.SetActive(m_daily != null && m_daily.HasClaimableMission);
     }
 
     void OpenSettings()
@@ -132,6 +196,9 @@ public class MainMenuManager : MonoBehaviour
         RefreshModeButtons();
         if (m_oddsButton != null) SetButtonText(m_oddsButton, english ? "ODDS" : "확률 정보");
         if (m_rankingButton != null) SetButtonText(m_rankingButton, english ? "RANKING" : "랭킹");
+        if (m_collectionButton != null) SetButtonText(m_collectionButton, english ? "COLLECTION" : "도감");
+        if (m_attendanceButton != null) SetButtonText(m_attendanceButton, english ? "CHECK-IN" : "출석");
+        if (m_questButton != null) SetButtonText(m_questButton, english ? "QUESTS" : "퀘스트");
     }
 
     void RefreshResetLabel()
