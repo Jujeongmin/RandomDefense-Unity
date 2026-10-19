@@ -85,3 +85,8 @@ crashlytics-build.properties
 /[Aa]ssets/Plugins/Android/mainTemplate.gradle.backup*
 /[Aa]ssets/Resources/PerformanceTestRun*.json
 /[Aa]ssets/Resources/PerformanceTestRun*.json.meta
+
+# CoreTests (.NET) - Unity 없이 Assets/Scripts/Core 를 컴파일·테스트하는 프로젝트 (Unity 는 Assets 밖이라 무시)
+!/CoreTests/**/*.csproj
+/CoreTests/**/bin/
+/CoreTests/**/obj/
