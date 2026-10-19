@@ -13,7 +13,7 @@ RandomDefense-Unity 를 웹판 **디펜스 배틀**(`../DefenseBattle`, TypeScri
 | 앱 | **새 앱으로 출시** — 회사명 JeonJa, 이름 디펜스 배틀, 패키지 `com.jeonja.defensebattle` (Player Settings 반영, 버전 1.0 / 코드 1). 기존 저장 호환 불필요 |
 | 로그인 | **Google Play 로그인 필수** (UGS Authentication + Google Play Games) |
 | 오프라인 | **인터넷 필수** - 경제가 서버 권위라 연결이 없으면 연결 안내 화면 |
-| 가격 | **원화 기준** - 가격표 초안은 `docs/ugs-setup.md` 6번 (확정 대기) |
+| 가격 | **원화 기준 (확정)** - `docs/ugs-setup.md` 6번. 시즌 패스 ₩5,900, 한정 상품 효율 약 200%, 뽑기권 묶음은 팔지 않음 |
 | 서버 구현 | **UGS Cloud Code C# 모듈** (`CloudCode/`). 게임 규칙은 클라이언트와 같은 `Assets/Scripts/Core` 소스를 그대로 컴파일 → 서버·기기 결과가 같다 (원래 계획했던 JS + rules.ts 재사용보다 한 벌의 코드로 유지) |
 | 작업 방식 | 사용자 PC에서 **Claude Code + Unity MCP** (`docs/unity-mcp-setup.md`) |
 

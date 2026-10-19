@@ -16,10 +16,9 @@
 ## 1. Google Play Console - 새 앱
 1. 앱 만들기 → 이름 "디펜스 배틀", 패키지 `com.jeonja.defensebattle`.
 2. **수익 창출 → 인앱 상품**: 아래 상품 ID 로 "관리형 상품"을 만든다. 가격은 원화 가격표 확정 후 (아래 6번).
-   `starter_pack`, `monthly_pass`, `ad_remove`, `season_premium`, `summon_ticket_pack`, `gold_booster_pack`,
+   `starter_pack`, `monthly_pass`, `ad_remove`, `season_premium`, `gold_booster_pack`,
    `offer_comeback`, `offer_arena`, `offer_chapter`, `unit_ranger`, `unit_frost`, `unit_paladin`, `unit_bomber`, `unit_assassin`,
    `chest_gold`, `chest_magic`, `chest_legend`, `crystal_100`, `crystal_550`, `crystal_1200`, `crystal_2600`, `crystal_7000`, `crystal_15000`
-   (`mythic_ticket` 은 판매 중단 상품이라 만들지 않는다)
 3. **수익 창출 설정 → 라이선스**: "Base64 인코딩 RSA 공개 키"를 복사해 둔다 → 4-5 Economy 에 넣는다.
 4. **Play 게임즈 서비스 → 설정**: 새 게임 만들기 → OAuth 동의 화면 → 사용자 인증 정보:
    - Android 클라이언트 (패키지명 + 업로드 키 SHA-1)
@@ -55,17 +54,33 @@
 - Cloud Code 대시보드에 `DefenseBattleCloud` 모듈과 함수 30여 개(EconSync, PvpQueue …)가 보이면 배포 성공.
 - 에디터에서 Google Play 로그인 → `EconSync` 호출 → Cloud Save 의 플레이어 Protected 데이터에 `econ` 이 생기면 연결 성공 (5단계 클라이언트 작업 때 확인).
 
-## 6. 원화 가격 (확정 대기)
-가격표 초안: 원본 달러 가격을 Google Play 한국 가격대(부가세 포함)에 맞춤. 확정되면 Play Console 상품 가격과 `Assets/Scripts/Core/Config/Products.cs` 에 넣는다.
+## 6. 원화 가격 (확정 2026-10-19)
+Play Console 인앱 상품에 아래 가격으로 등록한다 (부가세 포함). 코드 값: `Assets/Scripts/Core/Config/Products.cs` (`Krw`).
+효율 = 보석 환산 가치 / (가격 ÷ 12원) - 보석 100 = ₩1,200 상품이 100%.
 
-| 원본 | 원화 | 상품 |
-| --- | --- | --- |
-| $0.99 | ₩1,200 | starter_pack, crystal_100 |
-| $1.99 | ₩2,500 | summon_ticket_pack, gold_booster_pack, offer_comeback |
-| $2.99 | ₩3,900 | unit_ranger, unit_frost, chest_gold |
-| $4.99 | ₩6,500 | monthly_pass, ad_remove, unit_paladin, unit_bomber, offer_arena, offer_chapter, crystal_550 |
-| $6.99 | ₩8,900 | unit_assassin, chest_magic |
-| $9.99 | ₩12,000 | season_premium, chest_legend, crystal_1200 |
-| $19.99 | ₩25,000 | crystal_2600 |
-| $49.99 | ₩65,000 | crystal_7000 |
-| $99.99 | ₩119,000 | crystal_15000 |
+| 상품 ID | 내용 | 가격 | 효율 |
+| --- | --- | --- | --- |
+| starter_pack | 보석 150 + 뽑기권 1 + 골드 부스터 1 (1회) | ₩1,200 | 300% |
+| monthly_pass | 즉시 보석 300 + 30일간 매일 40 | ₩6,500 | 277% |
+| ad_remove | 광고 없이 보상 + 3배속 + 보석 500 (1회) | ₩6,500 | - |
+| season_premium | PvP 시즌 패스 프리미엄 트랙 | ₩5,900 | - |
+| gold_booster_pack | 골드 부스터 5개 | ₩2,500 | 120% |
+| offer_comeback | (24시간) 보석 220 + 뽑기권 1 + 골드 부스터 2 | ₩2,500 | 202% |
+| offer_arena | (24시간) 보석 700 + 뽑기권 4 | ₩6,500 | 203% |
+| offer_chapter | (24시간) 보석 600 + 뽑기권 3 + 골드 부스터 4 | ₩6,500 | 203% |
+| unit_ranger | 레인저 해금 + Lv5 + 보석 200 (1회) | ₩3,900 | 277% |
+| unit_frost | 빙결술사 해금 + Lv5 (1회) | ₩3,900 | 277% |
+| unit_paladin | 성기사 해금 + Lv5 + 보석 300 (1회) | ₩6,500 | 277% |
+| unit_bomber | 폭격수 해금 + Lv5 (1회) | ₩6,500 | 295% |
+| unit_assassin | 암살자 해금 + Lv5 (1회) | ₩8,900 | 297% |
+| chest_gold | 금 상자 (카드 40장+ · 영웅 1장) | ₩3,900 | - |
+| chest_magic | 마법 상자 (카드 90장+ · 영웅 4장) | ₩8,900 | - |
+| chest_legend | 전설 상자 (전설 카드 1장 보장) | ₩12,000 | - |
+| crystal_100 | 보석 100 | ₩1,200 | 100% |
+| crystal_550 | 보석 550 | ₩6,500 | 102% |
+| crystal_1200 | 보석 1,200 | ₩12,000 | 120% |
+| crystal_2600 | 보석 2,600 | ₩25,000 | 125% |
+| crystal_7000 | 보석 7,000 | ₩65,000 | 129% |
+| crystal_15000 | 보석 15,000 | ₩119,000 | 151% |
+
+원본과 다른 점: 시즌 패스 가격 인하, 한정 상품 보상을 효율 약 200% 로 낮춤, 뽑기권 묶음(`summon_ticket_pack`)·판매 중단 상품(`mythic_ticket`)은 팔지 않음.

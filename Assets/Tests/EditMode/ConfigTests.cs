@@ -108,6 +108,23 @@ namespace DefenseBattle.Core.Tests
         }
 
         [Test]
+        public void Products_KrwPricingDecisions()
+        {
+            // 사용자 결정 (2026-10-19): 한정 상품 효율 약 200%, 시즌 패스 ₩5,900, 뽑기권 묶음은 안 판다
+            foreach (string id in new[] { "offer_comeback", "offer_arena", "offer_chapter" })
+            {
+                int eff = Products.Efficiency(Products.Get(id));
+                Assert.That(eff, Is.InRange(195, 210), id + " " + eff + "%");
+            }
+            Assert.AreEqual(5900, Products.Get("season_premium").Krw);
+            Assert.IsNull(Products.Get("summon_ticket_pack"));
+            Assert.IsNull(Products.Get("mythic_ticket"));
+            Assert.AreEqual(100, Products.Efficiency(Products.Get("crystal_100")));
+            Assert.AreEqual(300, Products.Efficiency(Products.Get("starter_pack")));
+            foreach (ProductDef p in Products.All) Assert.Greater(p.Krw, 0, p.Id);
+        }
+
+        [Test]
         public void TextFormatsLikeJavaScript()
         {
             Assert.AreEqual("6.5% 궁수 전설등급 소환", Loc.Tl("{0}% {1} {2}등급 소환", 6.5, "궁수", "전설"));

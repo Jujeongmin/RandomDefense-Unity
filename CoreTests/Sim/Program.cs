@@ -250,6 +250,11 @@ static class Program
     static void Main(string[] args)
     {
         if (args.Length > 0 && args[0] == "pvp") { PvpSweep(args.Length > 1 ? int.Parse(args[1]) : 12, args.Length > 2 ? double.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture) : 0.55); return; }
+        if (args.Length > 0 && args[0] == "prices")
+        {
+            foreach (ProductDef p in Products.All) Console.WriteLine($"{p.Id,-20} {p.Krw,8:N0}원 효율 {Products.Efficiency(p)}%");
+            return;
+        }
         if (args.Length > 0 && args[0] == "bench") { Bench(args.Length > 1 ? int.Parse(args[1]) : 3, args.Length > 2 ? int.Parse(args[2]) : 20); return; }
         string mode = args.Length > 0 ? args[0] : "sweep";
         if (mode == "fingerprint") { Fingerprint(args.Length > 1 ? int.Parse(args[1]) : 40); return; }
