@@ -79,6 +79,31 @@ namespace DefenseBattle.Core
             return true;
         }
 
+        /// <summary>이 몹 카드를 쓸 수 있나 (기본 4장 + 트로피 로드에서 도달한 카드)</summary>
+        public static bool AttackUnlocked(EconState e, AttackKey key)
+        {
+            if (Array.IndexOf(Attacks.Starter, key) >= 0) return true;
+            int? at = TrophyRoad.AttackAt(key);
+            return at.HasValue && e.Pvp.Trophies >= at.Value;
+        }
+
+        /// <summary>
+        /// 덱 편성 (원본은 기기가 마음대로 저장했다 - 여기선 서버가 확인): 유닛은 가진 것만 서로 다르게 1~4개,
+        /// 몹 카드는 쓸 수 있는 것만 서로 다르게 4장. 둘 중 하나라도 틀리면 아무것도 바꾸지 않는다
+        /// </summary>
+        public static bool SetDecks(EconState e, IList<Job> deck, IList<AttackKey> attackDeck)
+        {
+            if (deck == null || deck.Count < 1 || deck.Count > Units.DeckSize) return false;
+            if (attackDeck == null || attackDeck.Count != Attacks.DeckSize) return false;
+            var seenJobs = new HashSet<Job>();
+            foreach (Job j in deck) if (!Enum.IsDefined(typeof(Job), j) || !e.Owns(j) || !seenJobs.Add(j)) return false;
+            var seenCards = new HashSet<AttackKey>();
+            foreach (AttackKey k in attackDeck) if (!Enum.IsDefined(typeof(AttackKey), k) || !AttackUnlocked(e, k) || !seenCards.Add(k)) return false;
+            e.Deck = new List<Job>(deck);
+            e.AttackDeck = new List<AttackKey>(attackDeck);
+            return true;
+        }
+
         // ---------------- 상자·뽑기 ----------------
         static List<Job> Pool(Rarity r)
         {
@@ -249,6 +274,30 @@ namespace DefenseBattle.Core
                 res.Steps.Add(s);
             }
             return res;
+        }
+
+        /// <summary>
+        /// 대전 결과로 트로피·전적 갱신 (원본 서버 finishMatch / pvpBotResult). 트로피 변화량을 돌려준다.
+        /// 승리: +30 + 연승 보너스(최대 +10), 패배: -20 (0 아래로는 안 내려감)
+        /// </summary>
+        public static int ApplyPvpResult(EconState e, bool won)
+        {
+            PvpStats s = e.Pvp;
+            int d = BotProfile.TrophyDelta(won, s.Streak, s.Trophies);
+            s.Trophies += d;
+            if (won)
+            {
+                s.Wins += 1;
+                s.Streak = Math.Max(0, s.Streak) + 1;
+                s.LossStreak = 0;
+            }
+            else
+            {
+                s.Losses += 1;
+                s.Streak = 0;
+                s.LossStreak += 1;
+            }
+            return d;
         }
 
         /// <summary>대전 결과 보상 (트로피·승패는 서버 판정 뒤)</summary>

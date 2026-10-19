@@ -48,6 +48,9 @@
   dotnet run -c Release --project CoreTests/Sim -- bench 3 0    # 프레임당 시간·할당량
   ```
 - 밸런스는 원본 시뮬레이터(`../DefenseBattle/tools/simulate.ts`, `pvpsim.ts`) 결과와 비교한다.
+- 서버(UGS Cloud Code 모듈 `CloudCode/`): `dotnet test CloudCode/Tests` (메모리 저장소로 서버 로직 전체), 모듈 빌드 `dotnet build CloudCode/Module`.
+  Core 를 바꾸면 서버도 같이 바뀐다 (같은 소스) - 두 테스트를 모두 돌린다.
+- 대시보드·스토어 세팅 순서는 `docs/ugs-setup.md`.
 
 ## 저장소
 

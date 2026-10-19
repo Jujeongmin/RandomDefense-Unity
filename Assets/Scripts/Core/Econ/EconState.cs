@@ -33,9 +33,15 @@ namespace DefenseBattle.Core
         public SeasonState Season = new SeasonState();
         public HashSet<string> Achievements = new HashSet<string>();
         public bool AdRemoved;
-        /// <summary>출전 덱 (해금 시 빈 칸이 있으면 자동으로 들어간다)</summary>
+        /// <summary>출전 덱 (해금 시 빈 칸이 있으면 자동으로 들어간다). 원본은 기기 저장본에 있었지만 해금 여부를 서버가 확인하도록 여기로</summary>
         public List<Job> Deck = new List<Job>();
+        /// <summary>PvP 몹 카드 덱 4장</summary>
+        public List<AttackKey> AttackDeck = new List<AttackKey>(Attacks.Starter);
         public PvpStats Pvp = new PvpStats();
+        /// <summary>이미 처리한 결제·대전 id (같은 것을 두 번 지급하지 않게, 최근 MaxRecentIds 개)</summary>
+        public List<string> RecentIds = new List<string>();
+
+        public const int MaxRecentIds = 500;
 
         /// <summary>새 계정 (meta.ts freshMeta 의 경제 부분): 기본 3종 해금, 나무 상자 1개</summary>
         public static EconState Fresh(string seasonId)
@@ -58,5 +64,14 @@ namespace DefenseBattle.Core
         public bool Owns(Job j) => LevelOf(j) > 0;
         public int ResearchLevel(ResearchKey k) => Research.TryGetValue(k, out int n) ? n : 0;
         public int StarsOf(string stageId) => Stages.TryGetValue(stageId, out int n) ? n : 0;
+
+        /// <summary>이 id 를 처음 처리하면 true (기록해 둔다), 이미 처리했으면 false</summary>
+        public bool MarkProcessed(string id)
+        {
+            if (string.IsNullOrEmpty(id) || RecentIds.Contains(id)) return false;
+            RecentIds.Add(id);
+            if (RecentIds.Count > MaxRecentIds) RecentIds.RemoveRange(0, RecentIds.Count - MaxRecentIds);
+            return true;
+        }
     }
 }

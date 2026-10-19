@@ -90,3 +90,9 @@ crashlytics-build.properties
 !/CoreTests/**/*.csproj
 /CoreTests/**/bin/
 /CoreTests/**/obj/
+
+# CloudCode (UGS Cloud Code C# 모듈 - Unity 밖)
+!/CloudCode/**/*.csproj
+!/CloudCode/*.sln
+/CloudCode/**/bin/
+/CloudCode/**/obj/

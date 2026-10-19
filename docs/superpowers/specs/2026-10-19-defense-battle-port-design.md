@@ -10,14 +10,16 @@ RandomDefense-Unity 를 웹판 **디펜스 배틀**(`../DefenseBattle`, TypeScri
 | 범위 | **전부**: 전투 코어 + 캠페인/무한 + 유닛 32종 컬렉션 + 몹 카드 16종 + 상자·뽑기·트로피 로드·퀘스트·시즌 패스·상점 + **실시간 1:1 PvP** |
 | 서버 | **Unity Gaming Services (UGS)** — 호스팅 없이 Authentication · Cloud Save · Cloud Code · Leaderboards · Multiplayer(Matchmaker + Relay) |
 | 에셋 | **디펜스 배틀 픽셀아트로 교체** (Pipoya 유닛/몹, Tiny Swords 맵·UI, Kenney 아이콘, Galmuri/Fusion Pixel 폰트, Mixkit 사운드) |
-| 앱 | **새 앱으로 출시** — 새 패키지명, 기존 '운빨 랜덤 디펜스' 저장 호환 불필요 |
+| 앱 | **새 앱으로 출시** — 회사명 JeonJa, 이름 디펜스 배틀, 패키지 `com.jeonja.defensebattle` (Player Settings 반영, 버전 1.0 / 코드 1). 기존 저장 호환 불필요 |
+| 로그인 | **Google Play 로그인 필수** (UGS Authentication + Google Play Games) |
+| 오프라인 | **인터넷 필수** - 경제가 서버 권위라 연결이 없으면 연결 안내 화면 |
+| 가격 | **원화 기준** - 가격표 초안은 `docs/ugs-setup.md` 6번 (확정 대기) |
+| 서버 구현 | **UGS Cloud Code C# 모듈** (`CloudCode/`). 게임 규칙은 클라이언트와 같은 `Assets/Scripts/Core` 소스를 그대로 컴파일 → 서버·기기 결과가 같다 (원래 계획했던 JS + rules.ts 재사용보다 한 벌의 코드로 유지) |
 | 작업 방식 | 사용자 PC에서 **Claude Code + Unity MCP** (`docs/unity-mcp-setup.md`) |
 
-### 아직 정할 것 (0단계에서 사용자에게 확인)
-- 새 패키지명 (제안: `com.junja.defensebattle`) · 앱 이름 표기 (제안: 디펜스 배틀 / Defense Battle)
-- UGS 프로젝트 생성·연결 (Unity Cloud 대시보드, 사용자 계정 필요)
-- 새 AdMob 앱/광고 단위 ID, Play Console 새 앱과 인앱 상품 등록
-- 결제 가격: 웹판 VX 가격(100 VX = $1)을 Play 가격대로 그대로 옮길지
+### 사용자가 할 일 (계정 필요)
+`docs/ugs-setup.md` 에 순서대로: Play Console 새 앱·인앱 상품·Play 게임즈 OAuth, AdMob 새 앱·보상형 3개, Unity Cloud 프로젝트 연결,
+UGS(Google Play 로그인·리더보드 `trophies`·Economy 영수증 검증 항목), Cloud Code 모듈 배포, 원화 가격 확정.
 
 ## 원칙
 
@@ -73,7 +75,7 @@ RandomDefense-Unity 를 웹판 **디펜스 배틀**(`../DefenseBattle`, TypeScri
 | `loadProfile` / `saveProfile` | **Cloud Save** (플레이어 데이터). 경제 필드는 클라가 못 씀 |
 | `econ`, `econSync`, `runStart`/`runEnd`, `claimPurchases` | **Cloud Code** 모듈 (JS). `econ/rules.ts` 재사용. 서버 전용 상태는 Cloud Save 의 서버 쓰기 전용 키(Protected/Private data) |
 | `$onItemPurchased` (VX Shop) | Unity IAP(Google Play Billing) 구매 → 영수증을 Cloud Code 로 보내 검증·지급 (purchaseId 1회) |
-| `pvpQueue`/`pvpPoll`/`pvpCancel` | **Matchmaker** (트로피 근접 규칙, 대기 시간에 따라 폭 확대) → **Relay** 세션 (`com.unity.services.multiplayer`) |
+| `pvpQueue`/`pvpPoll`/`pvpCancel` | Cloud Code `PvpQueue`/`PvpPoll`/`PvpCancel` (원본 트로피 근접 규칙 그대로) → 매칭되면 호스트가 **Relay** 방을 만들고 `PvpReady` 로 참가 코드 공유 |
 | `pvpReady`/`pvpSnap`/`pvpAttack`/`pvpDefeat` | Relay 위 메시지 (Netcode for GameObjects 의 Named Message 또는 Unity Transport 직접). 스냅샷 0.25초 주기·~2.5KB, 공격·패배 이벤트 |
 | `finishMatch`, `onRoomLeave`, `pvpResume`/`pvpClaimAway` | Cloud Code `pvpReport` — 양쪽 결과 보고·이탈 처리 후 트로피·보상 지급 |
 | `pvpBotStart` / `pvpBotResult` | Cloud Code 같은 이름 함수 (봇전도 서버가 트로피 관리) |
@@ -105,9 +107,16 @@ PvP 동기화 모델은 원본과 같다: **각 클라이언트가 자기 전장
 
 | 단계 | 상태 |
 | --- | --- |
-| 0. 세팅 | 일부 - MCP 연결 완료. 패키지명·UGS·에셋 복사는 남음 |
+| 0. 세팅 | 일부 - MCP 연결, 앱 정보(Player Settings) 완료. UGS 대시보드·에셋 복사는 남음 |
 | 1. Core 이식 | **완료 (2026-10-19)** - 아래 검증 결과 |
-| 2 ~ 7 | 시작 전 |
+| 5. UGS 연동 | **서버 쪽 완료 (2026-10-19)** - Cloud Code 모듈 + 서버 테스트 33개. 클라이언트 연결(로그인·호출·푸시 구독)은 남음 |
+| 2 ~ 4, 6, 7 | 시작 전 (2단계부터는 에디터 작업 - PC 의 Claude Code + MCP) |
+
+### 5단계 서버 결과 (`CloudCode/`, UGS Cloud Code C# 모듈 `DefenseBattleCloud`)
+- 구조: `Module/Logic` (UGS 와 무관한 서버 로직 `GameServer` - 저장소·시계·알림·랭킹·영수증을 인터페이스로) + `Module/Ugs` (Cloud Save·푸시·Leaderboards·Economy 어댑터, `[CloudCodeFunction]` 진입점) + `Tests` (메모리 저장소로 원본 서버 테스트 이식).
+- 저장: 경제·기록은 플레이어 **Protected** 데이터(기기는 읽기만), 대기열·경기는 Private Custom 데이터 `defensebattle`. 쓰기는 Cloud Save 쓰기 잠금 + 충돌 시 재시도.
+- 원본과 다르게 한 것: ① 덱 편성을 서버가 확인(`SetDecks` - 가진 유닛·열린 카드만). ② 결제는 스토어 영수증 검증(Economy) 후 지급, 주문 id 로 한 번만 (검증은 됐는데 지급 기록이 없으면 다시 지급해 복구). ③ 실시간 중계는 서버 대신 Relay(P2P) - 서버는 매칭·시작 시각·이탈 판정(마지막 응답 20초)·결과만. ④ 대전 결과 지급은 경기 id 로 한 번만.
+- **원본에서 찾은 버그 2개** (이식판에는 없음, 원본 수정은 별도 작업으로 제안함): 서버가 몹 카드 번호를 0~9 로 잘라 10~15번 카드가 상대에게 마왕으로 도착함 / 대기열 하트비트가 '기다린 시간'을 0 으로 되돌려 대기할수록 트로피 허용 폭이 넓어지는 규칙이 동작하지 않음.
 
 ### 1단계 결과 (`Assets/Scripts/Core`, 순수 C#, `DefenseBattle.Core` 어셈블리)
 - 옮긴 것: 데이터 표 전부(유닛 32·등급·스킬 32·몹 카드 16·웨이브·캠페인 30·연구·상자·뽑기·상점·시즌 패스·아레나·트로피 로드·퀘스트·업적), 엔진(`Game`), 봇 AI(`BotPlayer`·`BotProfile`·`BotMatch`), 경제 규칙(`EconRules`).

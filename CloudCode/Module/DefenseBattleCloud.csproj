@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    디펜스 배틀 UGS Cloud Code 모듈. 게임 규칙은 Unity 클라이언트와 같은 소스(Assets/Scripts/Core)를 그대로 컴파일한다.
+    배포: Unity 에디터 Deployment 창 (Assets/CloudCode/DefenseBattleCloud.ccmr) 또는 UGS CLI.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <AssemblyName>DefenseBattleCloud</AssemblyName>
+    <RootNamespace>DefenseBattle.Server</RootNamespace>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Configurations>Debug;Release</Configurations>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <PublishReadyToRunComposite>true</PublishReadyToRunComposite>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/Scripts/Core/**/*.cs" Link="Core/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Com.Unity.Services.CloudCode.Apis" Version="0.0.27" />
+    <PackageReference Include="Com.Unity.Services.CloudCode.Core" Version="0.0.9" />
+  </ItemGroup>
+</Project>
