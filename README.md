@@ -83,12 +83,12 @@ dotnet run -c Release --project CoreTests/Sim -- prices      # 상점 가격·�
 
 ## 예전 앱 (운빨 랜덤 디펜스)
 
-이 저장소는 원래 '운빨 랜덤 디펜스'(`com.junja.randomdefense`)였다. 이식 직전 상태는 태그로 남아 있다.
+이 저장소는 원래 '운빨 랜덤 디펜스'(`com.junja.randomdefense`)였다. 이식 직전 상태는 보관 브랜치로 남아 있다.
 
-- `random-defense-v2.0` - 출시본 (버전 2.0, 코드 3)
-- `random-defense-v2.1` - 리텐션 업데이트 (출석·도감·튜토리얼, 코드 4)
+- `archive/random-defense-v2.0` - 출시본 (버전 2.0, 코드 3)
+- `archive/random-defense-v2.1` - 리텐션 업데이트 (출석·도감·튜토리얼, 코드 4)
 
-예전 앱을 고쳐야 하면 태그에서 브랜치를 만들어 작업한다. 예전 씬은 서드파티 팩(`Assets/Down/` - Cainos Pixel Art Top Down Basic, JMO Cartoon FX Remaster, Clean Vector Icons, Universal Stylized UI)을 따로 임포트해야 열린다 (라이선스상 저장소에 없음).
+예전 앱을 고쳐야 하면 보관 브랜치에서 새 브랜치를 만들어 작업한다 (보관 브랜치 자체는 그대로 둔다). 예전 씬은 서드파티 팩(`Assets/Down/` - Cainos Pixel Art Top Down Basic, JMO Cartoon FX Remaster, Clean Vector Icons, Universal Stylized UI)을 따로 임포트해야 열린다 (라이선스상 저장소에 없음).
 
 ## 에셋 출처
 
